@@ -26,7 +26,6 @@ extract_landmarks() returns a dict like:
 
 calculate_angle(a, b, c) returns the angle in degrees at point b.
 
-````markdown
 ---
 
 # Rehabilitation Analysis
