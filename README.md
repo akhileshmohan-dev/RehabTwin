@@ -125,4 +125,3 @@ Extended:  160°
 
 These thresholds are prototype parameters and are not clinically validated.
 
-```
