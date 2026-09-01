@@ -70,4 +70,11 @@ def get_valid_angle(pose_frame, angle_name, min_visibility=0.5):
         if landmark_visibility < min_visibility:
             return None
 
+    if not is_valid_measurement(
+        angle,
+        min(visibility[name] for name in required_landmarks),
+        min_visibility=min_visibility,
+    ):
+        return None
+
     return angle
