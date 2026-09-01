@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 .env
 rehabilitation/elbow_motion.csv
+data/*.db

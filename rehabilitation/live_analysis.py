@@ -29,6 +29,7 @@ from angle_utils import calculate_angle
 from pose_output import create_pose_frame
 
 from rehabilitation.analysis_pipeline import ElbowAnalysisPipeline
+from digital_thread.thread import DigitalThread
 
 
 OUTPUT_FILE = os.path.join(
@@ -49,11 +50,23 @@ pipeline = ElbowAnalysisPipeline(
     flexed_threshold=100,
     extended_threshold=160
 )
+digital_thread = DigitalThread()
+
+patient_id = "TEST-001"
+
+session_id = digital_thread.start_session(
+    patient_id=patient_id,
+    exercise="elbow_flexion"
+)
+
+print(f"Digital Thread session started: {session_id}")
 
 print("Starting elbow-motion data collection.")
 print("Perform elbow flexion movements.")
 print("Press 'q' to stop.")
 
+
+frame_id = 0
 with open(OUTPUT_FILE, "w", newline="") as csv_file:
 
     writer = csv.writer(csv_file)
@@ -126,12 +139,21 @@ with open(OUTPUT_FILE, "w", newline="") as csv_file:
 
         if pose_frame is not None:
 
+            frame_id += 1
+
             raw_angle = pose_frame["angles"].get(
                 "left_elbow"
             )
 
             analysis_result = pipeline.process(
                 pose_frame
+            )
+
+            digital_thread.record_frame(
+                frame_id=frame_id,
+                landmarks=pose_frame["landmarks"],
+                joint_angles=pose_frame["angles"],
+                phase=analysis_result["state"],
             )
 
             raw_angle = analysis_result["raw_angle"]
@@ -193,4 +215,20 @@ cap.release()
 pose.close()
 cv2.destroyAllWindows()
 
-print(f"\nData saved to: {OUTPUT_FILE}")
+final_result = pipeline.process(None)
+
+rom_result = final_result["rom"]
+
+digital_thread.record_result(
+    repetitions=final_result["repetitions"],
+    rom_min=rom_result["min_angle"],
+    rom_max=rom_result["max_angle"],
+    rom_average=None,
+    performance_score=None,
+    feedback=""
+)
+
+digital_thread.end_session()
+
+print(f"\nDigital Thread session completed: {session_id}")
+print(f"Data saved to: {OUTPUT_FILE}")
