@@ -1,24 +1,80 @@
-import { Activity } from "lucide-react";
+import { Activity, Play, Square } from "lucide-react";
 import type { Session } from "@/types/rehab";
 import { formatDateTime } from "@/lib/format";
 
-export function LatestSession({ session }: { session?: Session | undefined }) {
+interface LatestSessionProps {
+  session?: (Session & { rawSessionId?: string; status?: string }) | undefined;
+  onStartSession?: () => void;
+  onEndSession?: (sessionId: string) => void;
+  isActionLoading?: boolean;
+}
+
+export function LatestSession({
+  session,
+  onStartSession,
+  onEndSession,
+  isActionLoading,
+}: LatestSessionProps) {
   if (!session) {
     return (
-      <section className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground shadow-card card-interactive">
-        No sessions recorded yet.
+      <section className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground shadow-card card-interactive flex items-center justify-between">
+        <span>No sessions recorded yet.</span>
+        {onStartSession && (
+          <button
+            type="button"
+            onClick={onStartSession}
+            disabled={isActionLoading}
+            className="flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm btn-interactive disabled:opacity-50 cursor-pointer"
+          >
+            <Play className="size-3.5 fill-current" />
+            <span>Start Session</span>
+          </button>
+        )}
       </section>
     );
   }
 
   const circumference = 2 * Math.PI * 26;
   const offset = circumference * (1 - session.score / 100);
+  const isActive = session.status === "ACTIVE";
 
   return (
     <section className="rounded-2xl border border-border bg-card p-5 shadow-card card-interactive">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-foreground">Latest Session</h2>
-        <p className="text-sm text-muted-foreground font-medium font-sans">{formatDateTime(session.dateTime)}</p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-bold text-foreground">Latest Session</h2>
+          {isActive && (
+            <span className="rounded-full bg-success/20 px-2.5 py-0.5 text-[10px] font-bold text-success-foreground animate-pulse">
+              ACTIVE
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-muted-foreground font-medium font-sans">
+            {formatDateTime(session.dateTime)}
+          </p>
+          {isActive && session.rawSessionId && onEndSession ? (
+            <button
+              type="button"
+              onClick={() => onEndSession(session.rawSessionId!)}
+              disabled={isActionLoading}
+              className="flex items-center gap-1.5 rounded-xl bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground hover:bg-destructive/90 transition-colors shadow-sm btn-interactive disabled:opacity-50 cursor-pointer"
+            >
+              <Square className="size-3.5 fill-current" />
+              <span>End Session</span>
+            </button>
+          ) : onStartSession ? (
+            <button
+              type="button"
+              onClick={onStartSession}
+              disabled={isActionLoading}
+              className="flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm btn-interactive disabled:opacity-50 cursor-pointer"
+            >
+              <Play className="size-3.5 fill-current" />
+              <span>Start Session</span>
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <div className="mt-4 flex items-center gap-4">

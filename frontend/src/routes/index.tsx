@@ -89,18 +89,17 @@ function PortalHub() {
 
           {/* Patient Portal Card */}
           <ScrollReveal className="w-full" delay={200}>
-            <a
-              href="#"
-              onClick={handlePatientClick}
-              className="group relative flex h-full flex-col justify-between rounded-3xl border border-border bg-card/65 p-8 text-left shadow-card opacity-90 hover:border-emerald-600/30 hover:bg-card hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+            <Link
+              to="/patient"
+              search={{ patientId: undefined }}
+              className="group relative flex h-full flex-col justify-between rounded-3xl border border-border bg-card p-8 text-left shadow-card hover:border-emerald-600/30 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
             >
-              <div className="absolute top-4 right-4 flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                <Sparkles className="size-3 animate-pulse" />
-                Coming Soon
+              <div className="absolute top-4 right-4 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                Active Portal
               </div>
 
               <div className="space-y-4">
-                <div className="flex size-14 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <div className="flex size-14 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform duration-300">
                   <User className="size-7" />
                 </div>
 
@@ -112,11 +111,11 @@ function PortalHub() {
                 </div>
               </div>
 
-              <div className="mt-8 flex items-center justify-between text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                <span>Under Construction</span>
-                <ArrowRight className="size-4 opacity-50" />
+              <div className="mt-8 flex items-center justify-between text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                <span>Enter Patient View</span>
+                <ArrowRight className="size-4 transform group-hover:translate-x-1.5 transition-transform" />
               </div>
-            </a>
+            </Link>
           </ScrollReveal>
         </div>
 
@@ -125,13 +124,6 @@ function PortalHub() {
           <p>RehabTwin Project Hub © 2026 · Group Mini Project</p>
         </ScrollReveal>
       </div>
-
-      {/* Floating Toast Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-6 z-50 animate-fade-in-up rounded-xl bg-slate-900 px-6 py-3.5 text-sm font-medium text-white shadow-xl dark:bg-white dark:text-slate-900">
-          {toastMessage}
-        </div>
-      )}
     </div>
   );
 }

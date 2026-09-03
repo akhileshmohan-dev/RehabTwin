@@ -1,5 +1,4 @@
 import cv2
-import time
 import mediapipe as mp
 from landmark_extractor import extract_landmarks
 from angle_utils import calculate_angle
@@ -21,20 +20,10 @@ cv2.resizeWindow("Pose Estimation", 1280, 720)
 frame_count = 0
 PRINT_EVERY_N_FRAMES = 60  # print one sample PoseFrame roughly every 2 sec at 30fps
 
-VISIBILITY_THRESHOLD = 0.5
-
-prev_time = time.time()
-fps = 0
-
 while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
         break
-
-    # --- FPS calculation ---
-    current_time = time.time()
-    fps = 1 / (current_time - prev_time) if (current_time - prev_time) > 0 else 0
-    prev_time = current_time
 
     rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     results = pose.process(rgb_frame)
@@ -51,83 +40,37 @@ while cap.isOpened():
         landmarks = extract_landmarks(results, w, h)
 
         if landmarks:
-            def visible(*landmark_names):
-                return all(
-                    landmarks[name]["visibility"] >= VISIBILITY_THRESHOLD
-                    for name in landmark_names
-                )
+            l_shoulder = landmarks["LEFT_SHOULDER"]
+            l_elbow = landmarks["LEFT_ELBOW"]
+            l_wrist = landmarks["LEFT_WRIST"]
+            left_elbow_angle = calculate_angle(l_shoulder, l_elbow, l_wrist)
 
-            angles = {}
+            r_shoulder = landmarks["RIGHT_SHOULDER"]
+            r_elbow = landmarks["RIGHT_ELBOW"]
+            r_wrist = landmarks["RIGHT_WRIST"]
+            right_elbow_angle = calculate_angle(r_shoulder, r_elbow, r_wrist)
 
-            # Elbow angles (shoulder-elbow-wrist)
-            if visible("LEFT_SHOULDER", "LEFT_ELBOW", "LEFT_WRIST"):
-                l_shoulder = landmarks["LEFT_SHOULDER"]
-                l_elbow = landmarks["LEFT_ELBOW"]
-                l_wrist = landmarks["LEFT_WRIST"]
-                angles["left_elbow"] = calculate_angle(l_shoulder, l_elbow, l_wrist)
+            l_hip = landmarks["LEFT_HIP"]
+            left_shoulder_angle = calculate_angle(l_hip, l_shoulder, l_elbow)
 
-            if visible("RIGHT_SHOULDER", "RIGHT_ELBOW", "RIGHT_WRIST"):
-                r_shoulder = landmarks["RIGHT_SHOULDER"]
-                r_elbow = landmarks["RIGHT_ELBOW"]
-                r_wrist = landmarks["RIGHT_WRIST"]
-                angles["right_elbow"] = calculate_angle(r_shoulder, r_elbow, r_wrist)
+            r_hip = landmarks["RIGHT_HIP"]
+            right_shoulder_angle = calculate_angle(r_hip, r_shoulder, r_elbow)
 
-            # Shoulder angles (hip-shoulder-elbow)
-            if visible("LEFT_HIP", "LEFT_SHOULDER", "LEFT_ELBOW"):
-                l_hip = landmarks["LEFT_HIP"]
-                l_shoulder = landmarks["LEFT_SHOULDER"]
-                l_elbow = landmarks["LEFT_ELBOW"]
-                angles["left_shoulder"] = calculate_angle(l_hip, l_shoulder, l_elbow)
+            angles = {
+                "left_elbow": left_elbow_angle,
+                "right_elbow": right_elbow_angle,
+                "left_shoulder": left_shoulder_angle,
+                "right_shoulder": right_shoulder_angle,
+            }
 
-            if visible("RIGHT_HIP", "RIGHT_SHOULDER", "RIGHT_ELBOW"):
-                r_hip = landmarks["RIGHT_HIP"]
-                r_shoulder = landmarks["RIGHT_SHOULDER"]
-                r_elbow = landmarks["RIGHT_ELBOW"]
-                angles["right_shoulder"] = calculate_angle(r_hip, r_shoulder, r_elbow)
-
-            # Hip angles (shoulder-hip-knee)
-            if visible("LEFT_SHOULDER", "LEFT_HIP", "LEFT_KNEE"):
-                l_shoulder = landmarks["LEFT_SHOULDER"]
-                l_hip = landmarks["LEFT_HIP"]
-                l_knee = landmarks["LEFT_KNEE"]
-                angles["left_hip"] = calculate_angle(l_shoulder, l_hip, l_knee)
-
-            if visible("RIGHT_SHOULDER", "RIGHT_HIP", "RIGHT_KNEE"):
-                r_shoulder = landmarks["RIGHT_SHOULDER"]
-                r_hip = landmarks["RIGHT_HIP"]
-                r_knee = landmarks["RIGHT_KNEE"]
-                angles["right_hip"] = calculate_angle(r_shoulder, r_hip, r_knee)
-
-            # Knee angles (hip-knee-ankle)
-            if visible("LEFT_HIP", "LEFT_KNEE", "LEFT_ANKLE"):
-                l_hip = landmarks["LEFT_HIP"]
-                l_knee = landmarks["LEFT_KNEE"]
-                l_ankle = landmarks["LEFT_ANKLE"]
-                angles["left_knee"] = calculate_angle(l_hip, l_knee, l_ankle)
-
-            if visible("RIGHT_HIP", "RIGHT_KNEE", "RIGHT_ANKLE"):
-                r_hip = landmarks["RIGHT_HIP"]
-                r_knee = landmarks["RIGHT_KNEE"]
-                r_ankle = landmarks["RIGHT_ANKLE"]
-                angles["right_knee"] = calculate_angle(r_hip, r_knee, r_ankle)
-
-            # --- Display only the angles that were confidently calculated ---
-            display_order = [
-                ("L Elbow", "left_elbow"), ("R Elbow", "right_elbow"),
-                ("L Shoulder", "left_shoulder"), ("R Shoulder", "right_shoulder"),
-                ("L Hip", "left_hip"), ("R Hip", "right_hip"),
-                ("L Knee", "left_knee"), ("R Knee", "right_knee"),
-            ]
-            y = 30
-            for label, key in display_order:
-                if key in angles:
-                    cv2.putText(frame, f"{label}: {int(angles[key])}", (10, y),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-                    y += 30
-
-    # --- FPS display (always shown, even if no pose detected) ---
-    cv2.putText(frame, f"FPS: {int(fps)}", (10, frame.shape[0] - 20),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
+            cv2.putText(frame, f"L Elbow: {int(left_elbow_angle)}", (10, 30),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+            cv2.putText(frame, f"R Elbow: {int(right_elbow_angle)}", (10, 60),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+            cv2.putText(frame, f"L Shoulder: {int(left_shoulder_angle)}", (10, 90),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+            cv2.putText(frame, f"R Shoulder: {int(right_shoulder_angle)}", (10, 120),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
 
     # Build the structured PoseFrame for Member 2 — this works whether or
     # not a pose was detected this frame (returns None if not).

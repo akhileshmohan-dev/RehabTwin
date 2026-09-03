@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { createFileRoute } from '@tanstack/react-router'
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   CalendarDays,
@@ -20,11 +20,13 @@ import { RecentSessions } from "@/components/therapist/sessions/RecentSessions";
 import { ScrollReveal } from "@/components/animations/ScrollReveal";
 import { SkeletonPatientDetails } from "@/components/ui/SkeletonLoader";
 import {
-  getLatestSession,
-  getPatients,
-  getSessions,
+  fetchPatientSessions,
+  fetchPatients,
+  startSession,
+  endSession,
+  DEMO_MODE,
 } from "@/data/rehabService";
-import type { Patient } from "@/types/rehab";
+import type { Patient, Session } from "@/types/rehab";
 
 export const Route = createFileRoute("/therapist")({
   head: () => ({
@@ -48,18 +50,95 @@ export const Route = createFileRoute("/therapist")({
 
 function Dashboard() {
   const [nav, setNav] = useState("Dashboard");
-  const [patients, setPatients] = useState<Patient[]>(() => getPatients());
-  const [selectedId, setSelectedId] = useState(patients[0]?.id ?? "");
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [selectedId, setSelectedId] = useState("");
+  const [sessions, setSessions] = useState<(Session & { rawSessionId?: string; status?: string })[]>([]);
   const [isSidebarMobileOpen, setIsSidebarMobileOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+  const [isActionLoading, setIsActionLoading] = useState(false);
+
+  useEffect(() => {
+    setIsLoading(true);
+    setIsError(false);
+    fetchPatients()
+      .then((data) => {
+        setPatients(data);
+        if (data.length > 0 && data[0]) setSelectedId(data[0].id);
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch patients:", err);
+        setIsError(true);
+        setIsLoading(false);
+      });
+  }, []);
+
+  const loadSessions = async (patientId: string, signal?: AbortSignal) => {
+    try {
+      const data = await fetchPatientSessions(patientId);
+      if (signal?.aborted) return;
+      setSessions(data);
+    } catch (err) {
+      if (signal?.aborted) return;
+      console.error("Failed to fetch patient sessions:", err);
+      setSessions([]);
+    }
+  };
+
+  useEffect(() => {
+    const controller = new AbortController();
+    if (selectedId) {
+      loadSessions(selectedId, controller.signal);
+    }
+
+    const interval = setInterval(() => {
+      if (!DEMO_MODE && selectedId) {
+        loadSessions(selectedId, controller.signal);
+      }
+    }, 5000);
+
+    return () => {
+      clearInterval(interval);
+      controller.abort();
+    };
+  }, [selectedId]);
+
+  const handleStartSession = async () => {
+    if (!selectedId || isActionLoading) return;
+    setIsActionLoading(true);
+    try {
+      await startSession(selectedId, "elbow_flexion");
+      loadSessions(selectedId);
+    } catch (err) {
+      console.error("Failed to start session:", err);
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleEndSession = async (sessionId: string) => {
+    if (!sessionId || isActionLoading) return;
+    setIsActionLoading(true);
+    try {
+      await endSession(sessionId);
+      loadSessions(selectedId);
+    } catch (err) {
+      console.error("Failed to end session:", err);
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
 
   const patient = useMemo(() => {
     return patients.find((p) => p.id === selectedId);
   }, [patients, selectedId]);
 
-  const sessions = useMemo(() => getSessions(selectedId), [selectedId]);
-  const latest = useMemo(() => getLatestSession(selectedId), [selectedId]);
+  const latest = useMemo(
+    () => sessions[sessions.length - 1],
+    [sessions],
+  );
   
   const stats = useMemo(() => {
     const total = patients.length;
@@ -71,7 +150,7 @@ function Dashboard() {
     
     return {
       totalPatients: total,
-      totalSessionsThisWeek: 24 + (patients.length - 5) * 2, // Mock adjustment
+      totalSessionsThisWeek: patients.reduce((sum, p) => sum + p.sessionCount, 0),
       improving,
       needAttention,
       avgRecoveryScore: avg,
@@ -119,6 +198,21 @@ function Dashboard() {
       <main className="min-w-0 flex-1 p-6 flex flex-col justify-between page-fade-in">
         <div>
           <Header onToggleSidebar={() => setIsSidebarMobileOpen(true)} />
+
+          {/* Connection Error State */}
+          {isError && !DEMO_MODE && (
+            <div className="mb-6 p-4 rounded-lg border border-destructive/50 bg-destructive/10 text-destructive flex flex-col items-center justify-center">
+              <AlertTriangle className="h-8 w-8 mb-2" />
+              <h3 className="font-semibold text-lg">Connection Error</h3>
+              <p className="text-sm">Could not connect to the backend API. Please ensure the server is running.</p>
+              <button 
+                className="mt-4 px-4 py-2 bg-destructive text-destructive-foreground rounded-md text-sm font-medium"
+                onClick={() => window.location.reload()}
+              >
+                Retry Connection
+              </button>
+            </div>
+          )}
 
           {/* Metric Cards Grid */}
           <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
@@ -190,7 +284,12 @@ function Dashboard() {
                 {isLoading ? (
                   <div className="rounded-2xl border border-border bg-card p-5 animate-shimmer h-[160px]" />
                 ) : (
-                  <LatestSession session={latest} />
+                  <LatestSession
+                    session={latest}
+                    onStartSession={handleStartSession}
+                    onEndSession={handleEndSession}
+                    isActionLoading={isActionLoading}
+                  />
                 )}
               </ScrollReveal>
             </div>
@@ -214,7 +313,7 @@ function Dashboard() {
         <footer className="mt-8 flex flex-wrap justify-end gap-3 text-xs text-muted-foreground border-t border-border/40 pt-4">
           <span>RehabTwin © 2026</span>
           <span>|</span>
-          <span>Therapist Dashboard (Demo Mode)</span>
+          <span>{DEMO_MODE ? "Therapist Dashboard (Demo Mode)" : "Therapist Dashboard (Live API)"}</span>
         </footer>
       </main>
 
