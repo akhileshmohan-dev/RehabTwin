@@ -12,8 +12,11 @@ import time
 
 # Landmarks the rehabilitation module needs, at minimum
 REQUIRED_LANDMARKS = [
-    "LEFT_HIP", "LEFT_SHOULDER", "LEFT_ELBOW", "LEFT_WRIST",
-    "RIGHT_HIP", "RIGHT_SHOULDER", "RIGHT_ELBOW", "RIGHT_WRIST",
+    "LEFT_SHOULDER", "LEFT_ELBOW", "LEFT_WRIST",
+    "RIGHT_SHOULDER", "RIGHT_ELBOW", "RIGHT_WRIST",
+    "LEFT_HIP", "RIGHT_HIP",
+    "LEFT_KNEE", "RIGHT_KNEE",
+    "LEFT_ANKLE", "RIGHT_ANKLE",
 ]
 
 
