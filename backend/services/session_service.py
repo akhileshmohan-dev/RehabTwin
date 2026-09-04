@@ -1,11 +1,15 @@
 """
 Session service orchestrating session lifecycle and telemetry persistence
-via DigitalThread API.
+via repository interfaces.
 """
 from typing import Any, Dict, Optional
 import os
 
-from digital_thread.thread import DigitalThread
+from backend.repositories.interfaces import (
+    ISessionRepository,
+    ITelemetryRepository,
+    IResultRepository,
+)
 from backend.schemas.session import (
     StartSessionRequest,
     StartSessionResponse,
@@ -20,26 +24,33 @@ from backend.schemas.session import (
 
 
 class SessionNotFoundException(Exception):
-    """Raised when a requested session_id does not exist in DigitalThread."""
+    """Raised when a requested session_id does not exist."""
     def __init__(self, session_id: str):
         self.session_id = session_id
         super().__init__(f"Session '{session_id}' not found.")
 
 
 class SessionService:
-    """Service layer wrapping DigitalThread for session business logic."""
+    """Service layer wrapping repository interfaces for session business logic."""
 
-    def __init__(self, digital_thread: Optional[DigitalThread] = None):
-        self.digital_thread = digital_thread or DigitalThread()
+    def __init__(
+        self,
+        session_repo: ISessionRepository,
+        telemetry_repo: ITelemetryRepository,
+        result_repo: IResultRepository,
+    ):
+        self.session_repo = session_repo
+        self.telemetry_repo = telemetry_repo
+        self.result_repo = result_repo
 
     def start_session(self, request: StartSessionRequest) -> StartSessionResponse:
-        """Start a new rehabilitation session in DigitalThread."""
-        sid = self.digital_thread.start_session(
+        """Start a new rehabilitation session."""
+        sid = self.session_repo.start_session(
             patient_id=request.patient_id,
             exercise=request.exercise,
             session_id=request.session_id
         )
-        session_data = self.digital_thread.get_session(sid)
+        session_data = self.session_repo.get_session(sid)
         return StartSessionResponse(
             session_id=sid,
             patient_id=session_data["patient_id"],
@@ -51,7 +62,7 @@ class SessionService:
     def get_session(self, session_id: str) -> SessionResponse:
         """Retrieve details of an existing session."""
         try:
-            session_data = self.digital_thread.get_session(session_id)
+            session_data = self.session_repo.get_session(session_id)
             return SessionResponse(
                 session_id=session_data["session_id"],
                 patient_id=session_data["patient_id"],
@@ -64,13 +75,11 @@ class SessionService:
             raise SessionNotFoundException(session_id)
 
     def end_session(self, session_id: str) -> EndSessionResponse:
-        """End an active session in DigitalThread."""
+        """End an active session."""
         # Ensure session exists first
         self.get_session(session_id)
         
-        # Set active session on DigitalThread instance and end it
-        self.digital_thread.session_id = session_id
-        self.digital_thread.end_session()
+        self.session_repo.end_session(session_id)
 
         return EndSessionResponse(
             session_id=session_id,
@@ -83,8 +92,8 @@ class SessionService:
         # Verify session existence
         self.get_session(session_id)
 
-        self.digital_thread.session_id = session_id
-        self.digital_thread.record_frame(
+        self.telemetry_repo.record_frame(
+            session_id=session_id,
             frame_id=request.frame_id,
             landmarks=request.landmarks,
             joint_angles=request.joint_angles,
@@ -100,8 +109,8 @@ class SessionService:
         """Record final performance metrics/results for a session."""
         self.get_session(session_id)
 
-        self.digital_thread.session_id = session_id
-        self.digital_thread.record_result(
+        self.result_repo.record_result(
+            session_id=session_id,
             repetitions=request.repetitions,
             rom_min=request.rom_min,
             rom_max=request.rom_max,
@@ -122,7 +131,7 @@ class SessionService:
             export_dir = os.path.join(os.getcwd(), "data", "exports")
             output_path = os.path.join(export_dir, f"{session_id}_export.json")
 
-        actual_path = self.digital_thread.export_session(
+        actual_path = self.session_repo.export_session(
             session_id=session_id,
             output_path=output_path
         )

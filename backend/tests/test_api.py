@@ -28,6 +28,14 @@ from backend.schemas.analysis import ProcessFrameRequest
 from backend.main import root, health_check
 
 
+from digital_thread.db import Database
+from backend.repositories.sqlalchemy_impl import (
+    SQLAlchemySessionRepository,
+    SQLAlchemyPatientRepository,
+    SQLAlchemyTelemetryRepository,
+    SQLAlchemyResultRepository,
+)
+
 class TestHealthEndpoints(unittest.TestCase):
     """Test root and health check endpoints."""
 
@@ -46,8 +54,16 @@ class TestSessionService(unittest.TestCase):
 
     def setUp(self):
         # Use an in-memory SQLite database for isolated test execution
-        self.dt = DigitalThread(database_url="sqlite:///:memory:")
-        self.service = SessionService(digital_thread=self.dt)
+        self.db = Database("sqlite:///:memory:")
+        self.db.create_schema()
+        self.session_repo = SQLAlchemySessionRepository(self.db)
+        self.telemetry_repo = SQLAlchemyTelemetryRepository(self.db)
+        self.result_repo = SQLAlchemyResultRepository(self.db)
+        self.service = SessionService(
+            session_repo=self.session_repo,
+            telemetry_repo=self.telemetry_repo,
+            result_repo=self.result_repo
+        )
 
     def test_start_and_get_session(self):
         req = StartSessionRequest(patient_id="PATIENT-TEST", exercise="elbow_flexion")
@@ -109,9 +125,20 @@ class TestPatientService(unittest.TestCase):
     """Test patient history and listing functionality."""
 
     def setUp(self):
-        self.dt = DigitalThread(database_url="sqlite:///:memory:")
-        self.session_service = SessionService(digital_thread=self.dt)
-        self.patient_service = PatientService(digital_thread=self.dt)
+        self.db = Database("sqlite:///:memory:")
+        self.db.create_schema()
+        
+        self.session_repo = SQLAlchemySessionRepository(self.db)
+        self.patient_repo = SQLAlchemyPatientRepository(self.db)
+        self.telemetry_repo = SQLAlchemyTelemetryRepository(self.db)
+        self.result_repo = SQLAlchemyResultRepository(self.db)
+        
+        self.session_service = SessionService(
+            session_repo=self.session_repo,
+            telemetry_repo=self.telemetry_repo,
+            result_repo=self.result_repo
+        )
+        self.patient_service = PatientService(patient_repo=self.patient_repo)
 
     def test_patient_history_and_list(self):
         # Create sessions for PATIENT-A and PATIENT-B

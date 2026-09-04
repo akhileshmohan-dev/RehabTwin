@@ -3,8 +3,8 @@ FastAPI router handling patient endpoints.
 """
 from fastapi import APIRouter, Depends, status
 
-from digital_thread.thread import DigitalThread
-from backend.core.dependencies import get_digital_thread
+from backend.core.dependencies import get_patient_repo
+from backend.repositories.interfaces import IPatientRepository
 from backend.services.patient_service import PatientService
 from backend.schemas.patient import PatientHistoryResponse, PatientListResponse
 
@@ -14,8 +14,8 @@ router = APIRouter(
 )
 
 
-def get_patient_service(dt: DigitalThread = Depends(get_digital_thread)) -> PatientService:
-    return PatientService(digital_thread=dt)
+def get_patient_service(patient_repo: IPatientRepository = Depends(get_patient_repo)) -> PatientService:
+    return PatientService(patient_repo=patient_repo)
 
 
 @router.get(

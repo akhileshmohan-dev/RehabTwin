@@ -4,8 +4,8 @@ FastAPI router handling session lifecycle and frame/result recording endpoints.
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from digital_thread.thread import DigitalThread
-from backend.core.dependencies import get_digital_thread
+from backend.core.dependencies import get_session_repo, get_telemetry_repo, get_result_repo
+from backend.repositories.interfaces import ISessionRepository, ITelemetryRepository, IResultRepository
 from backend.services.session_service import SessionService, SessionNotFoundException
 from backend.schemas.session import (
     StartSessionRequest,
@@ -25,8 +25,16 @@ router = APIRouter(
 )
 
 
-def get_session_service(dt: DigitalThread = Depends(get_digital_thread)) -> SessionService:
-    return SessionService(digital_thread=dt)
+def get_session_service(
+    session_repo: ISessionRepository = Depends(get_session_repo),
+    telemetry_repo: ITelemetryRepository = Depends(get_telemetry_repo),
+    result_repo: IResultRepository = Depends(get_result_repo)
+) -> SessionService:
+    return SessionService(
+        session_repo=session_repo,
+        telemetry_repo=telemetry_repo,
+        result_repo=result_repo
+    )
 
 
 @router.post(
