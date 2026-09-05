@@ -5,51 +5,60 @@ import sys
 import cv2
 import mediapipe as mp
 
-from rehabilitation.session_assessment import SessionAssessment
-
-from mediapipe.python.solutions import pose as mp_pose
-from mediapipe.python.solutions import drawing_utils as mp_drawing
-
 
 # ---------------------------------------------------------
 # Repository root
 # ---------------------------------------------------------
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
+PROJECT_ROOT = os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))
+)
 
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 
 # ---------------------------------------------------------
-# Allow imports from pose_estimation/
+# MediaPipe
 # ---------------------------------------------------------
 
-POSE_DIR = os.path.join(
-    PROJECT_ROOT,
-    "pose_estimation"
-)
-
-if POSE_DIR not in sys.path:
-    sys.path.insert(0, POSE_DIR)
+from mediapipe.python.solutions import pose as mp_pose
+from mediapipe.python.solutions import drawing_utils as mp_drawing
 
 
-from landmark_extractor import extract_landmarks
-from angle_utils import calculate_angle
-from pose_output import create_pose_frame
+# ---------------------------------------------------------
+# Project imports
+# ---------------------------------------------------------
 
+from rehabilitation.session_assessment import SessionAssessment
 from rehabilitation.analysis_pipeline import (
     RehabilitationAnalysisPipeline
 )
 from rehabilitation.exercise_config import EXERCISE_CONFIG
+from rehabilitation.posture_detector import (
+    PostureDetector,
+    validate_setup
+)
+
+from pose_estimation.landmark_extractor import extract_landmarks
+from pose_estimation.angle_utils import calculate_angle
+from pose_estimation.pose_output import create_pose_frame
+
 from digital_thread.thread import DigitalThread
+
+from rehabilitation.posture_detector import (
+    PostureDetector,
+    validate_setup
+)
 
 
 # ---------------------------------------------------------
 # Exercise selection
 # ---------------------------------------------------------
 
-EXERCISE = "shoulder_abduction"
+EXERCISE = "elbow_flexion"  # Change this to the desired exercise
+
+
 # ---------------------------------------------------------
 # Exercise configuration
 # ---------------------------------------------------------
@@ -89,6 +98,13 @@ pose = mp_pose.Pose(
 
 cap = cv2.VideoCapture(0)
 
+if not cap.isOpened():
+    raise RuntimeError(
+        "Could not open webcam. "
+        "Check that your camera is connected and not being used "
+        "by another application."
+    )
+
 
 # ---------------------------------------------------------
 # Separate rehabilitation pipelines
@@ -116,6 +132,13 @@ right_assessment = SessionAssessment()
 
 
 # ---------------------------------------------------------
+# Posture detector
+# ---------------------------------------------------------
+
+posture_detector = PostureDetector()
+
+
+# ---------------------------------------------------------
 # Digital Thread
 # ---------------------------------------------------------
 
@@ -128,6 +151,7 @@ session_id = digital_thread.start_session(
     exercise=EXERCISE
 )
 
+
 print(
     f"Digital Thread session started: {session_id}"
 )
@@ -138,6 +162,10 @@ print(
 
 print(
     f"Perform {EXERCISE.replace('_', ' ')} movements."
+)
+
+print(
+    "Posture detection: standing / sitting / unknown"
 )
 
 print("Press 'q' to stop.")
@@ -159,6 +187,12 @@ with open(
 
     writer.writerow([
         "timestamp",
+
+        # Posture / setup
+        "posture",
+        "setup_ready",
+        "visible_landmarks",
+        "visibility_score",
 
         # Left side
         f"left_raw_{LEFT_ANGLE_NAME}",
@@ -208,108 +242,241 @@ with open(
 
         results = pose.process(rgb_frame)
 
+
+        # -------------------------------------------------
+        # Default values for every frame
+        # -------------------------------------------------
+
         pose_frame = None
 
+        landmarks = None
 
-        if results.pose_landmarks:
+        posture = "UNKNOWN"
 
-            # Draw skeleton
-            mp_drawing.draw_landmarks(
+        setup_ready = False
+
+        visible_landmarks = 0
+
+        visibility_score = 0.0
+
+
+        # -------------------------------------------------
+        # No pose detected
+        # -------------------------------------------------
+
+        if not results.pose_landmarks:
+
+            cv2.putText(
                 frame,
-                results.pose_landmarks,
-                mp_pose.POSE_CONNECTIONS
+                "No person detected",
+                (20, 40),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (0, 0, 255),
+                2
+            )
+
+            cv2.putText(
+                frame,
+                "Move into camera view",
+                (20, 75),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (255, 255, 255),
+                2
+            )
+
+            cv2.putText(
+                frame,
+                "Posture: UNKNOWN",
+                (20, frame.shape[0] - 70),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (255, 255, 255),
+                2
+            )
+
+            cv2.putText(
+                frame,
+                "Setup: NOT READY",
+                (20, frame.shape[0] - 35),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (0, 0, 255),
+                2
+            )
+
+            cv2.imshow(
+                f"RehabTwin - "
+                f"{EXERCISE.replace('_', ' ').title()}",
+                frame
+            )
+
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                break
+
+            continue
+
+
+        # -------------------------------------------------
+        # Draw MediaPipe skeleton
+        # -------------------------------------------------
+
+        mp_drawing.draw_landmarks(
+            frame,
+            results.pose_landmarks,
+            mp_pose.POSE_CONNECTIONS
+        )
+
+
+        h, w, _ = frame.shape
+
+
+        # -------------------------------------------------
+        # Extract landmarks
+        # -------------------------------------------------
+
+        landmarks = extract_landmarks(
+            results,
+            w,
+            h
+        )
+
+
+        if not landmarks:
+
+            cv2.putText(
+                frame,
+                "Landmarks unavailable",
+                (20, 40),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (0, 0, 255),
+                2
+            )
+
+            cv2.imshow(
+                f"RehabTwin - "
+                f"{EXERCISE.replace('_', ' ').title()}",
+                frame
+            )
+
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                break
+
+            continue
+
+
+        # =================================================
+        # SETUP VALIDATION
+        # =================================================
+
+        setup_result = validate_setup(
+            landmarks
+        )
+
+        setup_ready = setup_result["ready"]
+
+        visible_landmarks = setup_result[
+            "visible_count"
+        ]
+
+        visibility_score = setup_result[
+            "visibility_score"
+        ]
+
+
+        # =================================================
+        # POSTURE DETECTION
+        # =================================================
+
+        posture_result = posture_detector.update(
+            landmarks
+        )
+
+        posture = posture_result.get(
+            "posture",
+            "UNKNOWN"
+        )
+
+
+        # =================================================
+        # ANGLE CALCULATION
+        # =================================================
+
+        angles = {}
+
+
+        # =============================================
+        # LEFT SIDE ANGLE
+        # =============================================
+
+        left_landmarks = left_config["landmarks"]
+
+        if all(
+            landmark in landmarks
+            for landmark in left_landmarks
+        ):
+
+            point_a = landmarks[
+                left_landmarks[0]
+            ]
+
+            point_b = landmarks[
+                left_landmarks[1]
+            ]
+
+            point_c = landmarks[
+                left_landmarks[2]
+            ]
+
+            angles[LEFT_ANGLE_NAME] = calculate_angle(
+                point_a,
+                point_b,
+                point_c
             )
 
 
-            h, w, _ = frame.shape
+        # =============================================
+        # RIGHT SIDE ANGLE
+        # =============================================
 
+        right_landmarks = right_config["landmarks"]
 
-            # -------------------------------------------------
-            # Extract landmarks
-            # -------------------------------------------------
+        if all(
+            landmark in landmarks
+            for landmark in right_landmarks
+        ):
 
-            landmarks = extract_landmarks(
-                results,
-                w,
-                h
+            point_a = landmarks[
+                right_landmarks[0]
+            ]
+
+            point_b = landmarks[
+                right_landmarks[1]
+            ]
+
+            point_c = landmarks[
+                right_landmarks[2]
+            ]
+
+            angles[RIGHT_ANGLE_NAME] = calculate_angle(
+                point_a,
+                point_b,
+                point_c
             )
 
 
-            angles = {}
+        # -------------------------------------------------
+        # Create pose frame if at least one angle exists
+        # -------------------------------------------------
 
+        if angles:
 
-            if landmarks:
-
-                # =============================================
-                # LEFT SIDE ANGLE
-                # =============================================
-
-                left_landmarks = left_config["landmarks"]
-
-                if all(
-                    landmark in landmarks
-                    for landmark in left_landmarks
-                ):
-
-                    point_a = landmarks[
-                        left_landmarks[0]
-                    ]
-
-                    point_b = landmarks[
-                        left_landmarks[1]
-                    ]
-
-                    point_c = landmarks[
-                        left_landmarks[2]
-                    ]
-
-                    angles[LEFT_ANGLE_NAME] = calculate_angle(
-                        point_a,
-                        point_b,
-                        point_c
-                    )
-
-
-                # =============================================
-                # RIGHT SIDE ANGLE
-                # =============================================
-
-                right_landmarks = right_config["landmarks"]
-
-                if all(
-                    landmark in landmarks
-                    for landmark in right_landmarks
-                ):
-
-                    point_a = landmarks[
-                        right_landmarks[0]
-                    ]
-
-                    point_b = landmarks[
-                        right_landmarks[1]
-                    ]
-
-                    point_c = landmarks[
-                        right_landmarks[2]
-                    ]
-
-                    angles[RIGHT_ANGLE_NAME] = calculate_angle(
-                        point_a,
-                        point_b,
-                        point_c
-                    )
-
-
-                # -------------------------------------------------
-                # Create pose frame if at least one angle exists
-                # -------------------------------------------------
-
-                if angles:
-
-                    pose_frame = create_pose_frame(
-                        landmarks,
-                        angles
-                    )
+            pose_frame = create_pose_frame(
+                landmarks,
+                angles
+            )
 
 
         # -----------------------------------------------------
@@ -321,7 +488,10 @@ with open(
             frame_id += 1
 
 
+            # -------------------------------------------------
             # Process both sides
+            # -------------------------------------------------
+
             left_result = left_pipeline.process(
                 pose_frame
             )
@@ -351,20 +521,35 @@ with open(
             # Extract results
             # -------------------------------------------------
 
-            left_raw_angle = left_result["raw_angle"]
+            left_raw_angle = left_result[
+                "raw_angle"
+            ]
+
             left_smoothed_angle = left_result[
                 "smoothed_angle"
             ]
-            left_rom = left_result["rom"]
 
-            right_raw_angle = right_result["raw_angle"]
+            left_rom = left_result[
+                "rom"
+            ]
+
+
+            right_raw_angle = right_result[
+                "raw_angle"
+            ]
+
             right_smoothed_angle = right_result[
                 "smoothed_angle"
             ]
-            right_rom = right_result["rom"]
+
+            right_rom = right_result[
+                "rom"
+            ]
 
 
-            timestamp = pose_frame["timestamp"]
+            timestamp = pose_frame[
+                "timestamp"
+            ]
 
 
             # -------------------------------------------------
@@ -372,7 +557,14 @@ with open(
             # -------------------------------------------------
 
             writer.writerow([
+
                 timestamp,
+
+                # Posture / setup
+                posture,
+                setup_ready,
+                visible_landmarks,
+                visibility_score,
 
                 # Left
                 left_raw_angle,
@@ -405,6 +597,7 @@ with open(
                 else
                 f"Left {LEFT_ANGLE_NAME}: --"
             )
+
 
             left_rom_text = (
                 f"Left ROM: {left_rom['rom']:.1f}"
@@ -458,6 +651,7 @@ with open(
                 f"Right {RIGHT_ANGLE_NAME}: --"
             )
 
+
             right_rom_text = (
                 f"Right ROM: {right_rom['rom']:.1f}"
                 if right_rom["rom"] is not None
@@ -498,6 +692,65 @@ with open(
             )
 
 
+        # =================================================
+        # POSTURE DISPLAY
+        # =================================================
+
+        cv2.putText(
+            frame,
+            f"Posture: {posture}",
+            (10, frame.shape[0] - 105),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.7,
+            (255, 255, 255),
+            2
+        )
+
+
+        # =================================================
+        # SETUP DISPLAY
+        # =================================================
+
+        setup_text = (
+            "Setup: READY"
+            if setup_ready
+            else "Setup: NOT READY"
+        )
+
+        setup_color = (
+            (0, 255, 0)
+            if setup_ready
+            else (0, 0, 255)
+        )
+
+        cv2.putText(
+            frame,
+            setup_text,
+            (10, frame.shape[0] - 70),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.7,
+            setup_color,
+            2
+        )
+
+
+        # =================================================
+        # VISIBILITY DISPLAY
+        # =================================================
+
+        cv2.putText(
+            frame,
+            f"Visibility: "
+            f"{visible_landmarks}/8 "
+            f"({visibility_score:.2f})",
+            (10, frame.shape[0] - 35),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.6,
+            (255, 255, 255),
+            2
+        )
+
+
         # -----------------------------------------------------
         # Show camera
         # -----------------------------------------------------
@@ -531,6 +784,7 @@ cv2.destroyAllWindows()
 # ---------------------------------------------------------
 
 left_final = left_pipeline.process(None)
+
 right_final = right_pipeline.process(None)
 
 
@@ -569,6 +823,7 @@ right_quality = right_assessment_result[
 # ---------------------------------------------------------
 
 left_rom_result = left_final["rom"]
+
 right_rom_result = right_final["rom"]
 
 
