@@ -406,7 +406,40 @@ with open(
 
         angles = {}
 
+        if setup_ready:
+            # LEFT SIDE ANGLE
+            left_landmarks = left_config["landmarks"]
 
+            if all(
+                landmark in landmarks
+                for landmark in left_landmarks
+            ):
+                point_a = landmarks[left_landmarks[0]]
+                point_b = landmarks[left_landmarks[1]]
+                point_c = landmarks[left_landmarks[2]]
+
+                angles[LEFT_ANGLE_NAME] = calculate_angle(
+                    point_a,
+                    point_b,
+                    point_c
+                )
+
+            # RIGHT SIDE ANGLE
+            right_landmarks = right_config["landmarks"]
+
+            if all(
+                landmark in landmarks
+                for landmark in right_landmarks
+            ):
+                point_a = landmarks[right_landmarks[0]]
+                point_b = landmarks[right_landmarks[1]]
+                point_c = landmarks[right_landmarks[2]]
+
+                angles[RIGHT_ANGLE_NAME] = calculate_angle(
+                    point_a,
+                    point_b,
+                    point_c
+                )
         # =============================================
         # LEFT SIDE ANGLE
         # =============================================
@@ -692,14 +725,14 @@ with open(
             )
 
 
-        # =================================================
+       # =================================================
         # POSTURE DISPLAY
         # =================================================
 
         cv2.putText(
             frame,
             f"Posture: {posture}",
-            (10, frame.shape[0] - 105),
+            (10, frame.shape[0] - 125),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.7,
             (255, 255, 255),
@@ -726,7 +759,7 @@ with open(
         cv2.putText(
             frame,
             setup_text,
-            (10, frame.shape[0] - 70),
+            (10, frame.shape[0] - 90),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.7,
             setup_color,
@@ -735,15 +768,30 @@ with open(
 
 
         # =================================================
+        # SETUP MESSAGE
+        # =================================================
+
+        if not setup_ready:
+            cv2.putText(
+                frame,
+                setup_result["message"],
+                (10, frame.shape[0] - 55),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.55,
+                (0, 0, 255),
+                2
+            )
+
+
+        # =================================================
         # VISIBILITY DISPLAY
         # =================================================
 
         cv2.putText(
             frame,
-            f"Visibility: "
-            f"{visible_landmarks}/8 "
+            f"Visibility: {visible_landmarks}/8 "
             f"({visibility_score:.2f})",
-            (10, frame.shape[0] - 35),
+            (10, frame.shape[0] - 20),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.6,
             (255, 255, 255),
