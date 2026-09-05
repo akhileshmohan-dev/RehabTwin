@@ -30,6 +30,14 @@ class SessionNotFoundException(Exception):
         super().__init__(f"Session '{session_id}' not found.")
 
 
+class SessionNotActiveException(Exception):
+    """Raised when attempting to record data to a non-ACTIVE session."""
+    def __init__(self, session_id: str, status: str):
+        self.session_id = session_id
+        self.status = status
+        super().__init__(f"Session '{session_id}' is not ACTIVE (current status: {status}).")
+
+
 class SessionService:
     """Service layer wrapping repository interfaces for session business logic."""
 
@@ -89,8 +97,10 @@ class SessionService:
 
     def record_frame(self, session_id: str, request: RecordFrameRequest) -> RecordFrameResponse:
         """Record telemetry frame data for an active session."""
-        # Verify session existence
-        self.get_session(session_id)
+        # Verify session existence and ACTIVE status
+        session = self.get_session(session_id)
+        if session.status != "ACTIVE":
+            raise SessionNotActiveException(session_id, session.status)
 
         self.telemetry_repo.record_frame(
             session_id=session_id,
@@ -107,7 +117,9 @@ class SessionService:
 
     def record_result(self, session_id: str, request: RecordResultRequest) -> RecordResultResponse:
         """Record final performance metrics/results for a session."""
-        self.get_session(session_id)
+        session = self.get_session(session_id)
+        if session.status != "ACTIVE":
+            raise SessionNotActiveException(session_id, session.status)
 
         self.result_repo.record_result(
             session_id=session_id,

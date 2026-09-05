@@ -21,7 +21,7 @@ from backend.schemas.session import (
     RecordFrameRequest,
     RecordResultRequest
 )
-from backend.services.session_service import SessionService, SessionNotFoundException
+from backend.services.session_service import SessionService, SessionNotFoundException, SessionNotActiveException
 from backend.services.patient_service import PatientService
 from backend.services.rehab_service import RehabService
 from backend.schemas.analysis import ProcessFrameRequest
@@ -119,6 +119,34 @@ class TestSessionService(unittest.TestCase):
         session_data = self.service.get_session(sid)
         self.assertEqual(session_data.status, "COMPLETED")
         self.assertIsNotNone(session_data.ended_at)
+
+    def test_record_to_ended_session_raises_exception(self):
+        start_res = self.service.start_session(
+            StartSessionRequest(patient_id="PATIENT-001", exercise="elbow_flexion")
+        )
+        sid = start_res.session_id
+        
+        self.service.end_session(sid)
+        
+        frame_req = RecordFrameRequest(
+            frame_id=1,
+            landmarks={"LEFT_ELBOW": {"x": 0.5, "y": 0.5, "z": 0.0, "visibility": 0.9}},
+            joint_angles={"left_elbow": 120.0},
+            phase="EXTENDED"
+        )
+        with self.assertRaises(SessionNotActiveException):
+            self.service.record_frame(sid, frame_req)
+            
+        result_req = RecordResultRequest(
+            repetitions=5,
+            rom_min=45.0,
+            rom_max=165.0,
+            rom_average=120.0,
+            performance_score=95.0,
+            feedback="Good form"
+        )
+        with self.assertRaises(SessionNotActiveException):
+            self.service.record_result(sid, result_req)
 
 
 class TestPatientService(unittest.TestCase):

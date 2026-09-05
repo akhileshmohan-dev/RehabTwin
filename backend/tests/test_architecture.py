@@ -38,3 +38,16 @@ def test_digital_thread_has_no_db_queries():
     thread_file = os.path.join(base_dir, "digital_thread", "thread.py")
     
     check_file_for_db_usage(thread_file)
+
+
+def test_dependencies_bypass_digital_thread():
+    """Verify that dependencies directly instantiate repositories, not via DigitalThread."""
+    from backend.core.dependencies import get_patient_repo, get_session_repo
+    from backend.repositories.sqlalchemy_impl import SQLAlchemyPatientRepository, SQLAlchemySessionRepository
+    
+    # We shouldn't use DigitalThread in the dependency path
+    patient_repo = get_patient_repo()
+    session_repo = get_session_repo()
+    
+    assert isinstance(patient_repo, SQLAlchemyPatientRepository)
+    assert isinstance(session_repo, SQLAlchemySessionRepository)
