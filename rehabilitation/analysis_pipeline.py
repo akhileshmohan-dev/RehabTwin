@@ -6,24 +6,11 @@ from rehabilitation.exercise_config import EXERCISE_CONFIG
 
 
 class RehabilitationAnalysisPipeline:
-    """
-    Generic rehabilitation analysis pipeline.
-
-    Pipeline:
-        PoseFrame
-            ↓
-        visibility filtering
-            ↓
-        angle smoothing
-            ↓
-        repetition counting
-            ↓
-        ROM calculation
-    """
 
     def __init__(
         self,
         exercise="elbow_flexion",
+        side="left",
         smoothing_window=5,
         flexed_threshold=None,
         extended_threshold=None,
@@ -33,10 +20,17 @@ class RehabilitationAnalysisPipeline:
                 f"Unsupported exercise: {exercise}"
             )
 
+        if side not in ("left", "right"):
+            raise ValueError(
+                "side must be 'left' or 'right'"
+            )
+
         config = EXERCISE_CONFIG[exercise]
+        side_config = config[side]
 
         self.exercise = exercise
-        self.angle_name = config["angle_name"]
+        self.side = side
+        self.angle_name = side_config["angle_name"]
 
         self.smoother = MovingAverageFilter(
             window_size=smoothing_window
