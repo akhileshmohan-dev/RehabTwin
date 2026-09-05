@@ -440,65 +440,7 @@ with open(
                     point_b,
                     point_c
                 )
-        # =============================================
-        # LEFT SIDE ANGLE
-        # =============================================
-
-        left_landmarks = left_config["landmarks"]
-
-        if all(
-            landmark in landmarks
-            for landmark in left_landmarks
-        ):
-
-            point_a = landmarks[
-                left_landmarks[0]
-            ]
-
-            point_b = landmarks[
-                left_landmarks[1]
-            ]
-
-            point_c = landmarks[
-                left_landmarks[2]
-            ]
-
-            angles[LEFT_ANGLE_NAME] = calculate_angle(
-                point_a,
-                point_b,
-                point_c
-            )
-
-
-        # =============================================
-        # RIGHT SIDE ANGLE
-        # =============================================
-
-        right_landmarks = right_config["landmarks"]
-
-        if all(
-            landmark in landmarks
-            for landmark in right_landmarks
-        ):
-
-            point_a = landmarks[
-                right_landmarks[0]
-            ]
-
-            point_b = landmarks[
-                right_landmarks[1]
-            ]
-
-            point_c = landmarks[
-                right_landmarks[2]
-            ]
-
-            angles[RIGHT_ANGLE_NAME] = calculate_angle(
-                point_a,
-                point_b,
-                point_c
-            )
-
+        
 
         # -------------------------------------------------
         # Create pose frame if at least one angle exists
