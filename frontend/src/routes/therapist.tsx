@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Activity,
   AlertTriangle,
   CalendarDays,
   TrendingUp,
@@ -12,7 +13,6 @@ import { Header } from "@/components/therapist/layout/Header";
 import { MetricCard } from "@/components/therapist/dashboard/MetricCard";
 import { PatientList } from "@/components/therapist/patients/PatientList";
 import { PatientDetails } from "@/components/therapist/patients/PatientDetails";
-import { AddPatientModal } from "@/components/therapist/patients/AddPatientModal";
 import { LatestSession } from "@/components/therapist/sessions/LatestSession";
 import { ProgressCharts } from "@/components/therapist/dashboard/ProgressCharts";
 import { SessionComparison } from "@/components/therapist/dashboard/SessionComparison";
@@ -21,12 +21,9 @@ import { ScrollReveal } from "@/components/animations/ScrollReveal";
 import { SkeletonPatientDetails } from "@/components/ui/SkeletonLoader";
 import {
   fetchPatientSessions,
-  fetchPatients,
-  startSession,
-  endSession,
-  DEMO_MODE,
+  fetchPatientsOverview,
 } from "@/data/rehabService";
-import type { Patient, Session } from "@/types/rehab";
+import type { DashboardStats, Patient, Session } from "@/types/rehab";
 
 export const Route = createFileRoute("/therapist")({
   head: () => ({
@@ -48,127 +45,106 @@ export const Route = createFileRoute("/therapist")({
   component: Dashboard,
 });
 
-function Dashboard() {
+export function Dashboard() {
   const [nav, setNav] = useState("Dashboard");
   const [patients, setPatients] = useState<Patient[]>([]);
   const [selectedId, setSelectedId] = useState("");
-  const [sessions, setSessions] = useState<(Session & { rawSessionId?: string; status?: string })[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [stats, setStats] = useState<DashboardStats>({
+    totalPatients: 0,
+    totalSessions: 0,
+    activePatients: 0,
+    avgPerformanceScore: null,
+  });
   const [isSidebarMobileOpen, setIsSidebarMobileOpen] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
-  const [isActionLoading, setIsActionLoading] = useState(false);
+
+  // Dual-guard race condition protection refs
+  const selectedIdRef = useRef(selectedId);
+  selectedIdRef.current = selectedId;
+  const requestSeqRef = useRef(0);
+
+  const loadSessions = useCallback(async (patientId: string) => {
+    if (!patientId) {
+      setSessions([]);
+      return;
+    }
+    const seq = ++requestSeqRef.current;
+    try {
+      const data = await fetchPatientSessions(patientId);
+      // Dual guard: verify request token AND selected patient identity
+      if (seq === requestSeqRef.current && patientId === selectedIdRef.current) {
+        setSessions(data);
+      }
+    } catch (err) {
+      if (seq === requestSeqRef.current && patientId === selectedIdRef.current) {
+        console.error("Failed to fetch patient sessions:", err);
+        setSessions([]);
+      }
+    }
+  }, []);
+
+  const loadData = useCallback(async (isInitial = false) => {
+    try {
+      const overview = await fetchPatientsOverview();
+      setIsError(false);
+      setStats(overview.stats);
+      setPatients(overview.patients);
+
+      let currentSelected = selectedIdRef.current;
+      if (!currentSelected && overview.patients.length > 0 && overview.patients[0]) {
+        currentSelected = overview.patients[0].id;
+        setSelectedId(currentSelected);
+        selectedIdRef.current = currentSelected;
+      } else if (currentSelected && !overview.patients.some((p) => p.id === currentSelected)) {
+        currentSelected = overview.patients[0]?.id || "";
+        setSelectedId(currentSelected);
+        selectedIdRef.current = currentSelected;
+      }
+
+      if (currentSelected) {
+        await loadSessions(currentSelected);
+      } else {
+        setSessions([]);
+      }
+    } catch (err) {
+      console.error("Failed to fetch dashboard data:", err);
+      setIsError(true);
+    } finally {
+      if (isInitial) {
+        setIsLoading(false);
+      }
+    }
+  }, [loadSessions]);
 
   useEffect(() => {
     setIsLoading(true);
-    setIsError(false);
-    fetchPatients()
-      .then((data) => {
-        setPatients(data);
-        if (data.length > 0 && data[0]) setSelectedId(data[0].id);
-        setIsLoading(false);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch patients:", err);
-        setIsError(true);
-        setIsLoading(false);
-      });
-  }, []);
-
-  const loadSessions = async (patientId: string, signal?: AbortSignal) => {
-    try {
-      const data = await fetchPatientSessions(patientId);
-      if (signal?.aborted) return;
-      setSessions(data);
-    } catch (err) {
-      if (signal?.aborted) return;
-      console.error("Failed to fetch patient sessions:", err);
-      setSessions([]);
-    }
-  };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    if (selectedId) {
-      loadSessions(selectedId, controller.signal);
-    }
+    loadData(true);
 
     const interval = setInterval(() => {
-      if (!DEMO_MODE && selectedId) {
-        loadSessions(selectedId, controller.signal);
-      }
+      loadData(false);
     }, 5000);
 
-    return () => {
-      clearInterval(interval);
-      controller.abort();
-    };
-  }, [selectedId]);
+    return () => clearInterval(interval);
+  }, [loadData]);
 
-  const handleStartSession = async () => {
-    if (!selectedId || isActionLoading) return;
-    setIsActionLoading(true);
-    try {
-      await startSession(selectedId, "elbow_flexion");
-      loadSessions(selectedId);
-    } catch (err) {
-      console.error("Failed to start session:", err);
-    } finally {
-      setIsActionLoading(false);
-    }
-  };
-
-  const handleEndSession = async (sessionId: string) => {
-    if (!sessionId || isActionLoading) return;
-    setIsActionLoading(true);
-    try {
-      await endSession(sessionId);
-      loadSessions(selectedId);
-    } catch (err) {
-      console.error("Failed to end session:", err);
-    } finally {
-      setIsActionLoading(false);
-    }
+  const handleSelectPatient = (id: string) => {
+    if (id === selectedId) return;
+    setSelectedId(id);
+    selectedIdRef.current = id;
+    loadSessions(id);
   };
 
   const patient = useMemo(() => {
     return patients.find((p) => p.id === selectedId);
   }, [patients, selectedId]);
 
+  // Sessions are newest-first, so sessions[0] is latest
   const latest = useMemo(
-    () => sessions[sessions.length - 1],
+    () => (sessions.length > 0 ? sessions[0] : undefined),
     [sessions],
   );
-  
-  const stats = useMemo(() => {
-    const total = patients.length;
-    const improving = patients.filter((p) => p.status !== "Attention").length;
-    const needAttention = total - improving;
-    const avg = total > 0 
-      ? Math.round(patients.reduce((sum, p) => sum + p.recoveryScore, 0) / total) 
-      : 0;
-    
-    return {
-      totalPatients: total,
-      totalSessionsThisWeek: patients.reduce((sum, p) => sum + p.sessionCount, 0),
-      improving,
-      needAttention,
-      avgRecoveryScore: avg,
-    };
-  }, [patients]);
-
-  const handleSelectPatient = (id: string) => {
-    setIsLoading(true);
-    setSelectedId(id);
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 450);
-  };
-
-  const handleAddPatient = (newPatient: Patient) => {
-    setPatients((prev) => [...prev, newPatient]);
-    setSelectedId(newPatient.id);
-  };
 
   return (
     <div className="flex min-h-screen w-full bg-background relative overflow-x-hidden">
@@ -200,14 +176,14 @@ function Dashboard() {
           <Header onToggleSidebar={() => setIsSidebarMobileOpen(true)} />
 
           {/* Connection Error State */}
-          {isError && !DEMO_MODE && (
+          {isError && (
             <div className="mb-6 p-4 rounded-lg border border-destructive/50 bg-destructive/10 text-destructive flex flex-col items-center justify-center">
               <AlertTriangle className="h-8 w-8 mb-2" />
               <h3 className="font-semibold text-lg">Connection Error</h3>
               <p className="text-sm">Could not connect to the backend API. Please ensure the server is running.</p>
               <button 
-                className="mt-4 px-4 py-2 bg-destructive text-destructive-foreground rounded-md text-sm font-medium"
-                onClick={() => window.location.reload()}
+                className="mt-4 px-4 py-2 bg-destructive text-destructive-foreground rounded-md text-sm font-medium hover:bg-destructive/90 transition-colors"
+                onClick={() => loadData(true)}
               >
                 Retry Connection
               </button>
@@ -215,50 +191,53 @@ function Dashboard() {
           )}
 
           {/* Metric Cards Grid */}
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <ScrollReveal className="w-full" delay={0}>
               <MetricCard
                 icon={Users}
                 label="Total Patients"
                 value={String(stats.totalPatients)}
-                sub="All Patients"
+                sub="Registered in thread"
               />
             </ScrollReveal>
             <ScrollReveal className="w-full" delay={60}>
               <MetricCard
                 icon={CalendarDays}
                 label="Total Sessions"
-                value={String(stats.totalSessionsThisWeek)}
-                sub="This Week"
+                value={String(stats.totalSessions)}
+                sub="Executed sessions"
               />
             </ScrollReveal>
             <ScrollReveal className="w-full" delay={120}>
               <MetricCard
-                icon={TrendingUp}
-                label="Patients Improving"
-                value={String(stats.improving)}
-                sub={`${Math.round((stats.improving / (stats.totalPatients || 1)) * 100)}% of total`}
-                tone="success"
+                icon={Activity}
+                label="Active Patients"
+                value={String(stats.activePatients)}
+                sub={stats.activePatients > 0 ? "Currently in session" : "No active sessions"}
+                tone={stats.activePatients > 0 ? "warning" : "default"}
               />
             </ScrollReveal>
             <ScrollReveal className="w-full" delay={180}>
               <MetricCard
-                icon={AlertTriangle}
-                label="Need Attention"
-                value={String(stats.needAttention)}
-                sub={`${Math.round((stats.needAttention / (stats.totalPatients || 1)) * 100)}% of total`}
-                tone="warning"
-              />
-            </ScrollReveal>
-            <ScrollReveal className="w-full" delay={240}>
-              <MetricCard
                 icon={TrendingUp}
-                label="Avg. Recovery Score"
-                value={`${stats.avgRecoveryScore}%`}
-                sub="Overall Average"
+                label="Average Performance Score"
+                value={stats.avgPerformanceScore !== null ? `${stats.avgPerformanceScore}%` : "—"}
+                sub="Completed with results"
+                tone="success"
               />
             </ScrollReveal>
           </div>
+
+          {/* Empty State Banner if no patients exist */}
+          {!isLoading && !isError && patients.length === 0 && (
+            <div className="mt-6 p-6 rounded-xl border border-dashed border-border bg-card/50 text-center">
+              <Users className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+              <h3 className="font-medium text-base text-foreground">No patients registered in the digital thread</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Start a session in the Patient Portal to initialize patient rehabilitation records.
+              </p>
+            </div>
+          )}
 
           {/* Patient Details & Trends */}
           <div className="mt-5 grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)_minmax(0,1.05fr)]">
@@ -267,7 +246,6 @@ function Dashboard() {
                 patients={patients}
                 selectedId={selectedId}
                 onSelect={handleSelectPatient}
-                onAddNew={() => setIsModalOpen(true)}
               />
             </ScrollReveal>
 
@@ -277,19 +255,18 @@ function Dashboard() {
                   <SkeletonPatientDetails />
                 ) : patient ? (
                   <PatientDetails patient={patient} />
-                ) : null}
+                ) : (
+                  <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground text-center">
+                    Select a patient to view clinical profile
+                  </div>
+                )}
               </ScrollReveal>
               
               <ScrollReveal className="w-full" delay={200}>
                 {isLoading ? (
                   <div className="rounded-2xl border border-border bg-card p-5 animate-shimmer h-[160px]" />
                 ) : (
-                  <LatestSession
-                    session={latest}
-                    onStartSession={handleStartSession}
-                    onEndSession={handleEndSession}
-                    isActionLoading={isActionLoading}
-                  />
+                  <LatestSession session={latest} />
                 )}
               </ScrollReveal>
             </div>
@@ -313,16 +290,9 @@ function Dashboard() {
         <footer className="mt-8 flex flex-wrap justify-end gap-3 text-xs text-muted-foreground border-t border-border/40 pt-4">
           <span>RehabTwin © 2026</span>
           <span>|</span>
-          <span>{DEMO_MODE ? "Therapist Dashboard (Demo Mode)" : "Therapist Dashboard (Live API)"}</span>
+          <span>Therapist Dashboard (Live Digital Thread)</span>
         </footer>
       </main>
-
-      {/* Add Patient Modal */}
-      <AddPatientModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onAdd={handleAddPatient}
-      />
     </div>
   );
 }

@@ -9,7 +9,10 @@ class IPatientRepository(ABC):
         Return a list of dicts with keys:
         - patient_id (str)
         - total_sessions (int)
-        - last_active (str)  # ISO datetime string
+        - active_sessions (int)
+        - completed_sessions (int)
+        - last_active (Optional[str])  # ISO datetime string
+        - average_performance_score (Optional[float])
         """
         pass
 
@@ -20,10 +23,21 @@ class IPatientRepository(ABC):
         """
         pass
 
+    @abstractmethod
+    def get_system_overview(self) -> Dict[str, Any]:
+        """
+        Return system-wide summary statistics dict:
+        - total_patients (int)
+        - total_sessions (int)
+        - active_patients (int)
+        - average_performance_score (Optional[float])
+        """
+        pass
+
 
 class ISessionRepository(ABC):
     @abstractmethod
-    def start_session(self, patient_id: str, exercise: str, session_id: Optional[str] = None) -> str:
+    def start_session(self, patient_id: str, exercise: str, side: str = "left", session_id: Optional[str] = None) -> str:
         """Create a session and return the new session_id."""
         pass
 

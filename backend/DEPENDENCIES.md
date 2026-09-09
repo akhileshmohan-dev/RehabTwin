@@ -3,7 +3,7 @@
 This document describes the Python package requirements for running and developing the RehabTwin FastAPI backend API layer.
 
 > [!NOTE]
-> Per architectural constraints, the main repository `requirements.txt` file is **not modified**. All backend dependency specifications are documented here.
+> All backend dependencies are now centralized in the project's root `requirements.txt` file for ease of setup. This document serves as a descriptive reference for why each package is required.
 
 ---
 
@@ -34,15 +34,12 @@ pip install fastapi uvicorn pydantic sqlalchemy opencv-python mediapipe
 
 ## Optional Test & Development Dependencies
 
-For enhanced automated testing with HTTP client integration:
+For enhanced automated testing with the backend API:
 
 | Package | Purpose |
 | :--- | :--- |
-| `httpx` | Required for `fastapi.testclient.TestClient` HTTP endpoint integration testing |
 | `pytest` | Test runner alternative to standard library `unittest` |
 
-Installation command for testing dependencies:
+*(Note: The current test suite relies on `pytest` and `unittest.mock` rather than `httpx` or `TestClient`.)*
 
-```bash
-pip install httpx pytest
-```
+Installation is handled automatically via the root `requirements.txt`.

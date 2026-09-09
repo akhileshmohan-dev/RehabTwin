@@ -13,7 +13,6 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { DATA_SOURCE } from "@/data/rehabService";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard },
@@ -90,12 +89,12 @@ export function Sidebar({ active, onSelect, onClose }: SidebarProps) {
 
       <div className="mt-auto space-y-4 p-4">
         <div className="rounded-xl bg-sidebar-accent/50 p-4 border border-sidebar-border/30">
-          <p className="text-[10px] uppercase font-bold tracking-wider text-sidebar-foreground/45">Data Source</p>
+          <p className="text-[10px] uppercase font-bold tracking-wider text-sidebar-foreground/45">System Status</p>
           <p className="mt-1.5 flex items-center gap-2 text-xs font-semibold text-sidebar-accent-foreground">
             <span className="size-1.5 rounded-full bg-success animate-pulse" />
-            {DATA_SOURCE}
+            Live Digital Thread
           </p>
-          <p className="text-[10px] text-sidebar-foreground/40">(Demo Mode)</p>
+          <p className="text-[10px] text-sidebar-foreground/40">Backend Connected</p>
         </div>
 
         <div className="flex items-center gap-3 rounded-xl px-2 py-2 bg-sidebar-accent/20 border border-sidebar-border/10">

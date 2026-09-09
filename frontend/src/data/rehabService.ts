@@ -1,52 +1,63 @@
 /**
- * Data access layer.
+ * Data access layer for RehabTwin.
+ * Purely backend-driven — no mock data or synthetic clinical metrics.
  */
-import { patients as mockPatients, sessions as mockSessions } from "./mockData";
-import type { DashboardStats, Patient, Session, PatientStatus } from "@/types/rehab";
+import type { DashboardStats, Patient, Session, SessionStatus, Exercise, MovementQuality } from "@/types/rehab";
 
 export const API_BASE_URL = import.meta.env["VITE_API_BASE_URL"] || "http://127.0.0.1:8000";
-export const DEMO_MODE = import.meta.env["VITE_DEMO_MODE"] === "true";
 
 export function getWebSocketUrl(sessionId: string): string {
-  const wsBase = API_BASE_URL.replace(/^http/, 'ws');
+  const wsBase = API_BASE_URL.replace(/^http/, "ws");
   return `${wsBase}/api/analysis/ws/${sessionId}`;
 }
 
-export async function fetchPatients(): Promise<Patient[]> {
-  if (DEMO_MODE) return mockPatients;
-
-  const response = await fetch(`${API_BASE_URL}/api/patients`);
-  if (!response.ok) throw new Error("Failed to fetch patients");
-  
+export async function fetchExercises(): Promise<Exercise[]> {
+  const response = await fetch(`${API_BASE_URL}/api/analysis/exercises`);
+  if (!response.ok) {
+    throw new Error("Failed to fetch exercises");
+  }
   const data = await response.json();
-  return data.patients.map((p: any) => ({
-    id: p.patient_id,
-    name: `Patient ${p.patient_id.replace(/\D/g, '') || p.patient_id}`,
-    age: 45, // Backend doesn't store this yet
-    gender: "Unknown", 
-    condition: "Rehabilitation",
-    startDate: p.last_active || new Date().toISOString(),
-    sessionCount: p.total_sessions,
-    recoveryScore: Math.min(100, p.total_sessions * 10 + 50), // Synthetic score for now
-    status: (p.total_sessions > 3 ? "Good" : "Attention") as PatientStatus,
-    avatarSeed: p.patient_id.toLowerCase(),
-  }));
+  return data.exercises || [];
 }
 
-export async function fetchPatientSessions(
-  patientId: string,
-): Promise<(Session & { rawSessionId?: string; status?: string })[]> {
-  if (DEMO_MODE) {
-    return mockSessions.filter(s => s.patientId === patientId).map(s => ({
-      ...s,
-      rawSessionId: `mock-${s.id}`,
-      status: "COMPLETED"
-    }));
-  }
+export interface PatientsOverviewResponse {
+  stats: DashboardStats;
+  patients: Patient[];
+}
 
-  const response = await fetch(
-    `${API_BASE_URL}/api/patients/${patientId}/sessions`,
-  );
+export async function fetchPatientsOverview(): Promise<PatientsOverviewResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/patients`);
+  if (!response.ok) throw new Error("Failed to fetch patients");
+
+  const data = await response.json();
+
+  const stats: DashboardStats = {
+    totalPatients: data.total_patients ?? 0,
+    totalSessions: data.total_sessions ?? 0,
+    activePatients: data.active_patients ?? 0,
+    avgPerformanceScore: data.average_performance_score ?? null,
+  };
+
+  const patients: Patient[] = (data.patients || []).map((p: any) => ({
+    id: p.patient_id,
+    name: `Patient ${p.patient_id.replace(/\D/g, "") || p.patient_id}`,
+    sessionCount: p.total_sessions ?? 0,
+    activeSessions: p.active_sessions ?? 0,
+    completedSessions: p.completed_sessions ?? 0,
+    avgPerformanceScore: p.average_performance_score ?? null,
+    lastActive: p.last_active,
+  }));
+
+  return { stats, patients };
+}
+
+export async function fetchPatients(): Promise<Patient[]> {
+  const overview = await fetchPatientsOverview();
+  return overview.patients;
+}
+
+export async function fetchPatientSessions(patientId: string): Promise<Session[]> {
+  const response = await fetch(`${API_BASE_URL}/api/patients/${patientId}/sessions`);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch sessions for ${patientId}`);
@@ -54,45 +65,75 @@ export async function fetchPatientSessions(
 
   const data = await response.json();
 
-  const mappedSessions = data.sessions.map(
+  const mappedSessions: Session[] = (data.sessions || []).map(
     (
       session: {
         session_id: string;
         patient_id: string;
         exercise: string;
+        side?: string;
         started_at?: string;
-        start_at?: string;
+        ended_at?: string;
         status: string;
-        results: any[];
+        results?: any[];
       },
-      index: number,
+      index: number
     ) => {
       const result = session.results && session.results.length > 0 ? session.results[0] : null;
+      const rawSide = (session.side || (result && result.side) || "left").trim().toLowerCase();
+      const side: "left" | "right" = rawSide === "right" ? "right" : "left";
+
+      const hasResult = result !== null && result !== undefined;
+      const reps = hasResult ? Number(result.repetitions || 0) : 0;
+      const rom =
+        hasResult && result.rom_max != null && result.rom_min != null
+          ? Math.round(result.rom_max - result.rom_min)
+          : 0;
+      const score =
+        hasResult && result.performance_score != null ? Math.round(result.performance_score) : null;
+
+      let quality: MovementQuality | undefined = undefined;
+      if (score !== null) {
+        if (score >= 85) quality = "Excellent";
+        else if (score >= 70) quality = "Good";
+        else if (score >= 55) quality = "Fair";
+        else quality = "Poor";
+      }
+
       return {
         id: index + 1,
         rawSessionId: session.session_id,
-        status: session.status,
         patientId: session.patient_id,
-        dateTime: session.started_at || session.start_at || new Date().toISOString(),
+        dateTime: session.started_at || new Date().toISOString(),
+        endedAt: session.ended_at,
         exercise: session.exercise
           .split("_")
           .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
           .join(" "),
-        repetitions: result ? result.repetitions : 0,
-        rom: result && result.rom_max && result.rom_min ? result.rom_max - result.rom_min : 0,
-        quality: (result && result.performance_score > 80 ? "Good" : "Fair") as any,
-        score: result ? result.performance_score || 50 : 50,
-      }
+        exerciseId: session.exercise,
+        side: side,
+        repetitions: reps,
+        rom: rom,
+        quality: quality,
+        score: score,
+        status: (session.status || "ACTIVE") as SessionStatus,
+        hasResult: hasResult,
+        feedback: result?.feedback || "",
+      };
     }
   );
-  
-  // Sort sessions descending by dateTime
-  return mappedSessions.sort((a: Session, b: Session) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime());
+
+  // Explicit newest-first sorting guarantee by started_at timestamp
+  return mappedSessions.sort(
+    (a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()
+  );
 }
 
+// Session execution functions preserved for the Patient Portal
 export async function startSession(
   patientId: string,
   exercise: string = "elbow_flexion",
+  side: string = "left"
 ) {
   const response = await fetch(`${API_BASE_URL}/api/sessions`, {
     method: "POST",
@@ -102,6 +143,7 @@ export async function startSession(
     body: JSON.stringify({
       patient_id: patientId,
       exercise: exercise,
+      side: side,
     }),
   });
 
@@ -115,37 +157,23 @@ export async function startSession(
 }
 
 export async function endSession(sessionId: string) {
-  const response = await fetch(
-    `${API_BASE_URL}/api/sessions/${sessionId}/end`,
-    {
-      method: "POST",
-    },
-  );
+  const response = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}/end`, {
+    method: "POST",
+  });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error(
-      `Error ending session ${sessionId} (${response.status}):`,
-      errorText,
-    );
-    throw new Error(`Failed to end session: ${response.statusText}`);
+    let errorDetail = response.statusText;
+    try {
+      const errorJson = await response.json();
+      if (errorJson?.detail) {
+        errorDetail = errorJson.detail;
+      }
+    } catch {
+      // ignore JSON parse error
+    }
+    console.error(`Error ending session ${sessionId} (${response.status}):`, errorDetail);
+    throw new Error(errorDetail || `Failed to end session: ${response.statusText}`);
   }
 
   return await response.json();
-}
-
-export function getPatients(): Patient[] {
-  throw new Error("getPatients is deprecated. Use fetchPatients instead.");
-}
-export function getPatient(id: string): Patient | undefined {
-  throw new Error("getPatient is deprecated. Use fetchPatients instead.");
-}
-export function getSessions(patientId: string): Session[] {
-  throw new Error("getSessions is deprecated. Use fetchPatientSessions instead.");
-}
-export function getLatestSession(patientId: string): Session | undefined {
-  throw new Error("getLatestSession is deprecated.");
-}
-export function getDashboardStats(): DashboardStats {
-  throw new Error("getDashboardStats is deprecated.");
 }

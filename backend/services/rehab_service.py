@@ -1,11 +1,11 @@
 """
-Rehabilitation service consuming core exercise catalog and analysis pipeline
+Rehabilitation service consuming unified exercise catalog and analysis pipeline
 from the rehabilitation module.
 """
 from typing import Dict, Optional, Any
 
-from rehabilitation.exercises import EXERCISES, get_exercise
-from rehabilitation.analysis_pipeline import ElbowAnalysisPipeline
+from rehabilitation.exercises import EXERCISE_REGISTRY, ExerciseDefinition, get_exercise_definition
+from rehabilitation.analysis_pipeline import GenericAnalysisPipeline, ElbowAnalysisPipeline
 
 from backend.schemas.analysis import (
     ExerciseInfo,
@@ -13,30 +13,32 @@ from backend.schemas.analysis import (
     ProcessFrameRequest,
     AnalysisResultResponse,
     ROMResult,
+    PoseStatusInfo,
 )
 
 
 class RehabService:
     """
     Service adapter for rehabilitation domain operations.
-    Consumes existing core functions from rehabilitation/ without modifying algorithms.
+    Consumes unified ExerciseDefinition registry and GenericAnalysisPipeline.
     """
 
     def __init__(self):
-        # Cache default pipeline instances or construct on request
         pass
 
     def list_exercises(self) -> ExerciseListResponse:
         """Return catalog of available rehabilitation exercise definitions."""
         exercises_list = []
-        for ex_id, info in EXERCISES.items():
+        for ex in EXERCISE_REGISTRY.values():
             exercises_list.append(
                 ExerciseInfo(
-                    id=ex_id,
-                    name=info["name"],
-                    joint_angle=info["joint_angle"],
-                    movement_type=info["movement_type"],
-                    description=info["description"]
+                    id=ex.id,
+                    name=ex.name,
+                    joint_angle=ex.joint_angle,
+                    movement_type=ex.movement_type,
+                    description=ex.description,
+                    supported_sides=["left", "right"],
+                    side=ex.side,
                 )
             )
         return ExerciseListResponse(
@@ -44,30 +46,58 @@ class RehabService:
             exercises=exercises_list
         )
 
-    def get_exercise_details(self, exercise_id: str) -> ExerciseInfo:
-        """Retrieve details for a specific exercise ID."""
+    def get_exercise_details(self, exercise_id: str, side: str = "left") -> ExerciseInfo:
+        """Retrieve details for a specific exercise ID and side."""
         try:
-            info = get_exercise(exercise_id)
+            ex = get_exercise_definition(exercise_id, side=side)
             return ExerciseInfo(
-                id=exercise_id,
-                name=info["name"],
-                joint_angle=info["joint_angle"],
-                movement_type=info["movement_type"],
-                description=info["description"]
+                id=ex.id,
+                name=ex.name,
+                joint_angle=ex.joint_angle,
+                movement_type=ex.movement_type,
+                description=ex.description,
+                supported_sides=["left", "right"],
+                side=ex.side,
             )
-        except ValueError as exc:
+        except KeyError as exc:
             raise KeyError(str(exc))
 
     def process_pose_frame(self, request: ProcessFrameRequest) -> AnalysisResultResponse:
         """
-        Process a single PoseFrame through the core ElbowAnalysisPipeline.
+        Process a single PoseFrame through GenericAnalysisPipeline.
         Pure analysis responsibility — does NOT perform database persistence.
         """
-        pipeline = ElbowAnalysisPipeline(
-            smoothing_window=request.smoothing_window,
-            flexed_threshold=request.flexed_threshold,
-            extended_threshold=request.extended_threshold
-        )
+        exercise_id = request.exercise_id
+        if exercise_id is None or exercise_id == "":
+            exercise_id = "elbow_flexion"
+
+        side = (request.side or "left").strip().lower()
+        base_def = get_exercise_definition(exercise_id, side=side)
+
+        # Adapt thresholds/window if request specified custom values different from base
+        if (
+            request.smoothing_window != base_def.smoothing_window
+            or request.flexed_threshold != base_def.flexed_threshold
+            or request.extended_threshold != base_def.extended_threshold
+        ):
+            active_def = ExerciseDefinition(
+                id=base_def.id,
+                name=base_def.name,
+                description=base_def.description,
+                target_joint=base_def.target_joint,
+                joint_angle=base_def.joint_angle,
+                landmarks=base_def.landmarks,
+                flexed_threshold=request.flexed_threshold,
+                extended_threshold=request.extended_threshold,
+                target_rom=base_def.target_rom,
+                movement_type=base_def.movement_type,
+                smoothing_window=request.smoothing_window,
+                side=base_def.side,
+            )
+        else:
+            active_def = base_def
+
+        pipeline = GenericAnalysisPipeline(active_def)
 
         analysis_dict = pipeline.process(request.pose_frame)
 
@@ -78,11 +108,25 @@ class RehabService:
             rom=rom_data.get("rom")
         )
 
+        pose_val = analysis_dict.get("pose_validation")
+        pose_status_info = (
+            PoseStatusInfo(
+                is_valid=pose_val.get("is_valid", True),
+                status=pose_val.get("status", "VALID"),
+                message=pose_val.get("message", ""),
+                missing_landmarks=pose_val.get("missing_landmarks", []),
+                low_visibility_landmarks=pose_val.get("low_visibility_landmarks", []),
+            )
+            if pose_val
+            else None
+        )
+
         return AnalysisResultResponse(
             raw_angle=analysis_dict.get("raw_angle"),
             valid_angle=analysis_dict.get("valid_angle"),
             smoothed_angle=analysis_dict.get("smoothed_angle"),
             state=analysis_dict.get("state", "UNKNOWN"),
             repetitions=analysis_dict.get("repetitions", 0),
-            rom=rom_result
+            rom=rom_result,
+            pose_status=pose_status_info,
         )

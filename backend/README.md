@@ -132,7 +132,7 @@ The React frontend (`frontend/`) makes standard asynchronous HTTP requests (usin
 To run the automated backend unit test suite:
 
 ```bash
-python -m unittest discover -s backend/tests
+python -m pytest backend/tests/
 ```
 
 All tests execute in isolated, in-memory databases and mock webcam streams, ensuring fast and reliable execution without physical camera dependencies.

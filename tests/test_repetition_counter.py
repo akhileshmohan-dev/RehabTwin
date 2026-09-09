@@ -71,3 +71,88 @@ def test_starting_flexed_does_not_count_rep():
         counter.update(angle)
 
     assert counter.repetitions == 0
+
+def test_shoulder_single_rep_cycle():
+    counter = RepetitionCounter(
+        flexed_threshold=60,
+        extended_threshold=160,
+        movement_direction="increasing"
+    )
+
+    # Rest (15) -> Overhead (170) -> Rest (15) = 1 rep
+    for angle in [15, 40, 100, 165, 170, 120, 50, 15]:
+        counter.update(angle)
+
+    assert counter.repetitions == 1
+    assert counter.state == "EXTENDED"
+
+
+def test_shoulder_two_rep_cycles():
+    counter = RepetitionCounter(
+        flexed_threshold=60,
+        extended_threshold=160,
+        movement_direction="increasing"
+    )
+
+    # Rest -> Raised -> Rest (1 rep) -> Raised -> Rest (2 reps)
+    for angle in [15, 170, 15, 170, 15]:
+        counter.update(angle)
+
+    assert counter.repetitions == 2
+    assert counter.state == "EXTENDED"
+
+
+def test_shoulder_noise_at_rest():
+    counter = RepetitionCounter(
+        flexed_threshold=60,
+        extended_threshold=160,
+        movement_direction="increasing"
+    )
+
+    for angle in [15, 25, 18, 22, 15]:
+        counter.update(angle)
+
+    assert counter.repetitions == 0
+    assert counter.state == "EXTENDED"
+
+
+def test_shoulder_incomplete_rep():
+    counter = RepetitionCounter(
+        flexed_threshold=60,
+        extended_threshold=160,
+        movement_direction="increasing"
+    )
+
+    for angle in [15, 120, 130, 50, 15]:
+        counter.update(angle)
+
+    assert counter.repetitions == 0
+
+
+def test_shoulder_starting_raised_does_not_count_premature_rep():
+    counter = RepetitionCounter(
+        flexed_threshold=60,
+        extended_threshold=160,
+        movement_direction="increasing"
+    )
+
+    for angle in [170, 120, 50, 15]:
+        counter.update(angle)
+
+    assert counter.repetitions == 0
+    assert counter.state == "EXTENDED"
+
+
+def test_knee_rep_cycle():
+    counter = RepetitionCounter(
+        flexed_threshold=100,
+        extended_threshold=160,
+        movement_direction="decreasing"
+    )
+
+    # 170 -> 60 -> 170 = 1 rep
+    for angle in [170, 120, 60, 110, 170]:
+        counter.update(angle)
+
+    assert counter.repetitions == 1
+    assert counter.state == "EXTENDED"

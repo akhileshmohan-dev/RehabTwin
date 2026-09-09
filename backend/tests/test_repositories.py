@@ -91,3 +91,76 @@ def test_result_idempotency(db):
     with db.session() as session:
         results = session.query(Result).filter_by(session_id=sid).all()
         assert len(results) == 1
+
+
+from sqlalchemy.exc import IntegrityError
+
+def test_database_enforces_unique_result(db):
+    session_repo = SQLAlchemySessionRepository(db)
+    sid = session_repo.start_session("P123", "Squats")
+    
+    with db.session() as session:
+        # Insert first result directly
+        r1 = Result(
+            session_id=sid, exercise="Squats", repetitions=10, 
+            rom_min=10.0, rom_max=100.0, rom_average=50.0, performance_score=80.0
+        )
+        session.add(r1)
+        session.commit()
+        
+        # Attempt to insert second result directly for the same session
+        r2 = Result(
+            session_id=sid, exercise="Squats", repetitions=15, 
+            rom_min=10.0, rom_max=100.0, rom_average=50.0, performance_score=85.0
+        )
+        session.add(r2)
+        
+        with pytest.raises(IntegrityError):
+            session.commit()
+            
+        session.rollback()
+        
+        # Assert exactly one result remains
+        count = session.query(Result).filter_by(session_id=sid).count()
+        assert count == 1
+
+
+import tempfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+def test_concurrent_result_idempotency():
+    # Use a file-backed temp DB to avoid SQLite in-memory thread isolation artifacts
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
+        db_path = tmp.name
+    
+    try:
+        # Create database with check_same_thread=False for ThreadPoolExecutor
+        db_url = f"sqlite:///{db_path}?check_same_thread=False"
+        database = Database(db_url)
+        database.create_schema()
+        
+        session_repo = SQLAlchemySessionRepository(database)
+        result_repo = SQLAlchemyResultRepository(database)
+        
+        sid = session_repo.start_session("P999", "Concurrency Test")
+        
+        def record_fn(rep):
+            # Each thread uses its own session under the hood (SessionLocal)
+            result_repo.record_result(sid, rep, 10.0, 100.0, 50.0, float(rep))
+            return True
+
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = [executor.submit(record_fn, i) for i in range(1, 6)]
+            
+            # Ensure no exceptions leaked
+            for future in as_completed(futures):
+                assert future.result() is True
+                
+        # Assert exactly one result row exists after concurrent races
+        with database.session() as session:
+            count = session.query(Result).filter_by(session_id=sid).count()
+            assert count == 1
+    finally:
+        database.engine.dispose()
+        if os.path.exists(db_path):
+            os.remove(db_path)

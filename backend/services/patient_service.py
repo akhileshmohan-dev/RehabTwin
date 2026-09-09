@@ -23,15 +23,17 @@ class PatientService:
     def get_patient_history(self, patient_id: str) -> PatientHistoryResponse:
         """
         Retrieve complete session and result history for a given patient_id
-        using IPatientRepository.
+        using IPatientRepository, ordered newest first (started_at DESC).
         """
         raw_history = self.patient_repo.get_patient_history(patient_id)
         
         sessions_list: List[PatientSessionHistoryItem] = []
         for item in raw_history:
+            session_side = item.get("side", "left") or "left"
             results_list = [
                 ResultSummary(
                     repetitions=r.get("repetitions", 0),
+                    side=r.get("side", session_side) or session_side,
                     rom_min=r.get("rom_min"),
                     rom_max=r.get("rom_max"),
                     rom_average=r.get("rom_average"),
@@ -46,11 +48,16 @@ class PatientService:
                     session_id=item["session_id"],
                     patient_id=item["patient_id"],
                     exercise=item["exercise"],
+                    side=session_side,
                     started_at=item["started_at"],
+                    ended_at=item.get("ended_at"),
                     status=item["status"],
                     results=results_list
                 )
             )
+
+        # Explicit newest-first ordering guarantee
+        sessions_list.sort(key=lambda s: s.started_at, reverse=True)
 
         return PatientHistoryResponse(
             patient_id=patient_id,
@@ -60,22 +67,30 @@ class PatientService:
 
     def list_patients(self) -> PatientListResponse:
         """
-        Query distinct active patients and session counts from the IPatientRepository.
+        Query distinct active patients, session counts, and system metrics
+        from the IPatientRepository.
         """
         patients_list: List[PatientSummary] = []
         
         records = self.patient_repo.list_patients()
+        overview = self.patient_repo.get_system_overview()
 
         for rec in records:
             patients_list.append(
                 PatientSummary(
                     patient_id=rec["patient_id"],
-                    total_sessions=rec["total_sessions"],
-                    last_active=rec["last_active"]
+                    total_sessions=rec.get("total_sessions", 0),
+                    active_sessions=rec.get("active_sessions", 0),
+                    completed_sessions=rec.get("completed_sessions", 0),
+                    last_active=rec.get("last_active"),
+                    average_performance_score=rec.get("average_performance_score")
                 )
             )
 
         return PatientListResponse(
-            total_patients=len(patients_list),
+            total_patients=overview.get("total_patients", len(patients_list)),
+            total_sessions=overview.get("total_sessions", sum(p.total_sessions for p in patients_list)),
+            active_patients=overview.get("active_patients", sum(1 for p in patients_list if p.active_sessions > 0)),
+            average_performance_score=overview.get("average_performance_score"),
             patients=patients_list
         )

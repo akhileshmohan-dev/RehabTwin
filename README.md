@@ -7,6 +7,7 @@ and calculates joint angles (elbow, shoulder — both sides) in real time.
 1. Create venv: `py -3.12 -m venv venv`
 2. Activate: `venv\Scripts\Activate.ps1`
 3. Install dependencies: `pip install -r requirements.txt`
+   *(Note: This single command installs the dependencies required for both the pose-estimation components and the FastAPI backend)*
 
 ## Files
 - `webcam_test.py` — basic webcam capture test
@@ -81,7 +82,7 @@ The CSV is generated runtime data and is excluded from Git.
 From the project root:
 
 ```powershell
-python -m pytest tests -v
+python -m pytest backend/tests/
 ```
 
 The current test suite should show:

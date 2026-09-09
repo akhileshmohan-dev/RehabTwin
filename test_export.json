@@ -1,16 +1,17 @@
 {
   "session": {
-    "session_id": "S-1BECDEA20B",
+    "session_id": "S-2CBE6A1A5C",
     "patient_id": "P123",
     "exercise": "Bicep Curls",
-    "started_at": "2026-09-04T18:53:37.445562",
+    "side": "left",
+    "started_at": "2026-09-09T02:10:47.166062",
     "ended_at": null,
     "status": "ACTIVE"
   },
   "frames": [
     {
       "frame_id": 1,
-      "timestamp": "2026-09-04T18:53:37.448864",
+      "timestamp": "2026-09-09T02:10:47.169062",
       "landmarks": {
         "x": 1
       },

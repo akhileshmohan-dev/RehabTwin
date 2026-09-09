@@ -130,3 +130,60 @@ def test_pipeline_reset_clears_rom():
     pipeline.reset()
 
     assert pipeline.angle_history == []
+
+from rehabilitation.analysis_pipeline import GenericAnalysisPipeline
+from rehabilitation.exercises import get_exercise_definition
+
+
+def test_generic_pipeline_shoulder_flexion():
+    ex_def = get_exercise_definition("shoulder_flexion")
+    pipeline = GenericAnalysisPipeline(ex_def)
+
+    def shoulder_frame(angle):
+        return {
+            "angles": {"left_shoulder": angle},
+            "visibility": {"LEFT_HIP": 0.9, "LEFT_SHOULDER": 0.9, "LEFT_ELBOW": 0.9},
+            "landmarks": {},
+        }
+
+    # Shoulder at rest (<= 60) is EXTENDED -> overhead (>= 160) is FLEXED -> back to rest (<= 60) is EXTENDED (1 rep)
+    for _ in range(5):
+        pipeline.process(shoulder_frame(50.0))
+    assert pipeline.counter.state == "EXTENDED"
+
+    for _ in range(5):
+        pipeline.process(shoulder_frame(165.0))
+    assert pipeline.counter.state == "FLEXED"
+
+    res = None
+    for _ in range(5):
+        res = pipeline.process(shoulder_frame(50.0))
+
+    assert res["repetitions"] == 1
+    assert res["state"] == "EXTENDED"
+    assert res["rom"]["min_angle"] <= 55.0
+    assert res["rom"]["max_angle"] >= 160.0
+
+
+def test_generic_pipeline_knee_flexion():
+    ex_def = get_exercise_definition("knee_flexion")
+    pipeline = GenericAnalysisPipeline(ex_def)
+
+    def knee_frame(angle):
+        return {
+            "angles": {"left_knee": angle},
+            "visibility": {"LEFT_HIP": 0.9, "LEFT_KNEE": 0.9, "LEFT_ANKLE": 0.9},
+            "landmarks": {},
+        }
+
+    # Knee extended (>= 160) -> flexed (<= 100) -> extended (>= 160)
+    for _ in range(5):
+        pipeline.process(knee_frame(170.0))
+    for _ in range(5):
+        pipeline.process(knee_frame(85.0))
+    res = None
+    for _ in range(5):
+        res = pipeline.process(knee_frame(170.0))
+
+    assert res["repetitions"] == 1
+    assert res["state"] == "EXTENDED"

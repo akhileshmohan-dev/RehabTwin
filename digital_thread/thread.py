@@ -26,8 +26,8 @@ class DigitalThread:
         self.telemetry_repo = SQLAlchemyTelemetryRepository(self.db)
         self.result_repo = SQLAlchemyResultRepository(self.db)
 
-    def start_session(self, patient_id: str, exercise: str, session_id: Optional[str] = None) -> str:
-        sid = self.session_repo.start_session(patient_id, exercise, session_id)
+    def start_session(self, patient_id: str, exercise: str, side: str = "left", session_id: Optional[str] = None) -> str:
+        sid = self.session_repo.start_session(patient_id, exercise, side, session_id)
         self.session_id = sid
         return sid
 

@@ -19,6 +19,7 @@ class Session(Base):
     session_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     patient_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     exercise: Mapped[str] = mapped_column(String(128), nullable=False)
+    side: Mapped[str] = mapped_column(String(16), nullable=False, default="left")
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     ended_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="ACTIVE")
@@ -50,8 +51,9 @@ class Result(Base):
     __tablename__ = "results"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    session_id: Mapped[str] = mapped_column(ForeignKey("sessions.session_id", ondelete="CASCADE"), index=True)
+    session_id: Mapped[str] = mapped_column(ForeignKey("sessions.session_id", ondelete="CASCADE"), unique=True, index=True)
     exercise: Mapped[str] = mapped_column(String(128), nullable=False)
+    side: Mapped[str] = mapped_column(String(16), nullable=False, default="left")
     repetitions: Mapped[int] = mapped_column(Integer, nullable=False)
     rom_min: Mapped[Optional[float]] = mapped_column(Float)
     rom_max: Mapped[Optional[float]] = mapped_column(Float)

@@ -6,7 +6,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from backend.core.dependencies import get_session_repo, get_telemetry_repo, get_result_repo
 from backend.repositories.interfaces import ISessionRepository, ITelemetryRepository, IResultRepository
-from backend.services.session_service import SessionService, SessionNotFoundException, SessionNotActiveException
+from backend.services.session_service import (
+    SessionService,
+    SessionNotFoundException,
+    SessionNotActiveException,
+    SessionNoResultException,
+    InvalidExerciseException,
+    InvalidSideException,
+)
 from backend.schemas.session import (
     StartSessionRequest,
     StartSessionResponse,
@@ -47,7 +54,13 @@ def start_session(
     request: StartSessionRequest,
     service: SessionService = Depends(get_session_service)
 ) -> StartSessionResponse:
-    return service.start_session(request)
+    try:
+        return service.start_session(request)
+    except (InvalidExerciseException, InvalidSideException) as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
 
 
 @router.get(
@@ -83,6 +96,11 @@ def end_session(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Session '{session_id}' does not exist."
+        )
+    except SessionNoResultException as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
         )
 
 

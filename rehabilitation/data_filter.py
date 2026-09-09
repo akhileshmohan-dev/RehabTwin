@@ -18,7 +18,17 @@ LANDMARKS_FOR_ANGLE = {
         "RIGHT_HIP",
         "RIGHT_SHOULDER",
         "RIGHT_ELBOW"
-    ]
+    ],
+    "left_knee": [
+        "LEFT_HIP",
+        "LEFT_KNEE",
+        "LEFT_ANKLE"
+    ],
+    "right_knee": [
+        "RIGHT_HIP",
+        "RIGHT_KNEE",
+        "RIGHT_ANKLE"
+    ],
 }
 
 

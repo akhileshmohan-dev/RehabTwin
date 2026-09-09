@@ -6,15 +6,17 @@ from pydantic import BaseModel, Field
 
 
 class StartSessionRequest(BaseModel):
-    patient_id: str = Field(..., description="Unique patient identifier", example="PATIENT-001")
-    exercise: str = Field(..., description="Exercise key e.g. 'elbow_flexion'", example="elbow_flexion")
-    session_id: Optional[str] = Field(None, description="Optional custom session ID", example="S-001")
+    patient_id: str = Field(..., description="Unique patient identifier", json_schema_extra={"example": "PATIENT-001"})
+    exercise: str = Field(..., description="Exercise key e.g. 'elbow_flexion'", json_schema_extra={"example": "elbow_flexion"})
+    side: Optional[str] = Field("left", description="Body side: 'left' or 'right'", json_schema_extra={"example": "left"})
+    session_id: Optional[str] = Field(None, description="Optional custom session ID", json_schema_extra={"example": "S-001"})
 
 
 class StartSessionResponse(BaseModel):
     session_id: str
     patient_id: str
     exercise: str
+    side: str = "left"
     status: str = "ACTIVE"
     started_at: Optional[str] = None
 
@@ -23,15 +25,28 @@ class SessionResponse(BaseModel):
     session_id: str
     patient_id: str
     exercise: str
+    side: str = "left"
     started_at: str
     ended_at: Optional[str] = None
     status: str
+
+
+class SessionResultData(BaseModel):
+    exercise: str
+    side: str = "left"
+    repetitions: int
+    rom_min: Optional[float] = None
+    rom_max: Optional[float] = None
+    rom_average: Optional[float] = None
+    performance_score: Optional[float] = None
+    feedback: str = ""
 
 
 class EndSessionResponse(BaseModel):
     session_id: str
     status: str = "COMPLETED"
     message: str
+    result: Optional[SessionResultData] = None
 
 
 class RecordFrameRequest(BaseModel):

@@ -1,55 +1,66 @@
-import { CalendarDays, IdCard, User } from "lucide-react";
+import { Activity, CalendarDays, CheckCircle2, Clock, IdCard } from "lucide-react";
 import type { Patient } from "@/types/rehab";
-import { formatDate } from "@/lib/format";
-import { StatusBadge } from "../../ui/StatusBadge";
+import { formatDateTime } from "@/lib/format";
 
 export function PatientDetails({ patient }: { patient: Patient }) {
+  const hasActive = patient.activeSessions > 0;
+
   return (
     <section className="rounded-2xl border border-border bg-card p-5 shadow-card card-interactive">
-      <h2 className="text-lg font-bold text-foreground">Patient Details</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold text-foreground">Patient Profile</h2>
+        {hasActive ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-600 dark:text-amber-400 border border-amber-500/30">
+            <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
+            Session Active
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/60 px-3 py-1 text-xs font-medium text-muted-foreground">
+            <CheckCircle2 className="size-3.5 text-muted-foreground" />
+            Completed / Idle
+          </span>
+        )}
+      </div>
 
-      <div className="mt-4 flex flex-col sm:flex-row gap-4">
-        <div className="flex size-20 shrink-0 items-center justify-center rounded-2xl bg-secondary text-lg font-bold text-secondary-foreground font-sans border border-border/40 shadow-sm transition-transform hover:scale-105 duration-200">
+      <div className="mt-4 flex flex-col sm:flex-row gap-5">
+        <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-secondary text-base font-bold text-secondary-foreground font-sans border border-border/40 shadow-sm">
           {patient.id}
         </div>
-        <div className="min-w-0 space-y-2 flex-1">
-          <div className="flex flex-wrap items-center gap-3">
+
+        <div className="min-w-0 flex-1 space-y-3">
+          <div>
             <h3 className="text-xl font-bold text-foreground tracking-tight">{patient.name}</h3>
-            <StatusBadge
-              value={patient.status === "Attention" ? "Attention" : `${patient.status} Progress`}
-            />
-          </div>
-          <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5">
-              <IdCard className="size-4 text-muted-foreground/80" /> ID: {patient.id}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <CalendarDays className="size-4 text-muted-foreground/80" /> {patient.age} Years
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <User className="size-4 text-muted-foreground/80" /> {patient.gender}
-            </span>
-          </p>
-          <div className="space-y-1 pt-1 text-sm">
-            <p className="text-foreground">
-              <span className="text-muted-foreground font-medium">Condition:</span> {patient.condition}
-            </p>
-            <p className="text-foreground flex flex-wrap gap-x-2">
-              <span>
-                <span className="text-muted-foreground font-medium">Start Date:</span>{" "}
-                {formatDate(patient.startDate)}
-              </span>
-              <span className="text-muted-foreground/40">·</span>
-              <span>
-                <span className="text-muted-foreground font-medium">Sessions:</span> {patient.sessionCount}
-              </span>
-              <span className="text-muted-foreground/40">·</span>
-              <span>
-                <span className="text-muted-foreground font-medium">Recovery Score:</span>{" "}
-                {patient.recoveryScore}%
-              </span>
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+              <IdCard className="size-3.5" /> ID: {patient.id}
             </p>
           </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+            <div className="rounded-xl border border-border/60 bg-muted/30 p-2.5">
+              <p className="text-[11px] font-medium text-muted-foreground">Total Sessions</p>
+              <p className="text-base font-bold text-foreground mt-0.5">{patient.sessionCount}</p>
+            </div>
+            <div className="rounded-xl border border-border/60 bg-muted/30 p-2.5">
+              <p className="text-[11px] font-medium text-muted-foreground">Active Sessions</p>
+              <p className="text-base font-bold text-foreground mt-0.5">{patient.activeSessions}</p>
+            </div>
+            <div className="rounded-xl border border-border/60 bg-muted/30 p-2.5">
+              <p className="text-[11px] font-medium text-muted-foreground">Completed</p>
+              <p className="text-base font-bold text-foreground mt-0.5">{patient.completedSessions}</p>
+            </div>
+            <div className="rounded-xl border border-border/60 bg-muted/30 p-2.5">
+              <p className="text-[11px] font-medium text-muted-foreground">Avg. Score</p>
+              <p className="text-base font-bold text-foreground mt-0.5">
+                {patient.avgPerformanceScore !== null ? `${patient.avgPerformanceScore}%` : "—"}
+              </p>
+            </div>
+          </div>
+
+          {patient.lastActive && (
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
+              <Clock className="size-3.5" /> Last active: {formatDateTime(patient.lastActive)}
+            </p>
+          )}
         </div>
       </div>
     </section>
