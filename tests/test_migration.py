@@ -97,6 +97,10 @@ def test_sqlite_migration_on_legacy_db():
         # 7. Verify new insert with side='right' works
         with engine.begin() as conn:
             conn.execute(text("""
+                INSERT INTO patients (patient_id, name, status, created_at, updated_at)
+                VALUES ('P-002', 'Patient Two', 'ACTIVE', '2026-01-02T10:00:00', '2026-01-02T10:00:00')
+            """))
+            conn.execute(text("""
                 INSERT INTO sessions (session_id, patient_id, exercise, side, started_at, status)
                 VALUES ('S-NEW-RIGHT', 'P-002', 'knee_flexion', 'right', '2026-01-02T10:00:00', 'ACTIVE')
             """))

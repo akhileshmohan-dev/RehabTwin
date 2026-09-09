@@ -29,7 +29,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from digital_thread.db import Database
-from digital_thread.models import Session, Result
+from digital_thread.models import Patient, Session, Result
 from backend.repositories.sqlalchemy_impl import (
     SQLAlchemyPatientRepository,
     SQLAlchemySessionRepository,
@@ -108,6 +108,8 @@ def test_empty_patient_database(repos, client):
 def test_patient_list_derived_from_real_sessions(repos, client):
     """Patients appear in list only when sessions exist."""
     session_repo = repos["session_repo"]
+    repos["patient_repo"].create_patient({"patient_id": "P1", "name": "Patient P1"})
+    repos["patient_repo"].create_patient({"patient_id": "P2", "name": "Patient P2"})
     session_repo.start_session(patient_id="P1", exercise="elbow_flexion", side="left")
     session_repo.start_session(patient_id="P2", exercise="shoulder_abduction", side="right")
 
@@ -124,6 +126,8 @@ def test_patient_list_derived_from_real_sessions(repos, client):
 def test_patient_isolation(repos, client):
     """Patient A's sessions never appear in Patient B's history."""
     session_repo = repos["session_repo"]
+    repos["patient_repo"].create_patient({"patient_id": "PAT_A", "name": "Patient A"})
+    repos["patient_repo"].create_patient({"patient_id": "PAT_B", "name": "Patient B"})
     s_a1 = session_repo.start_session(patient_id="PAT_A", exercise="elbow_flexion", side="left")
     s_a2 = session_repo.start_session(patient_id="PAT_A", exercise="shoulder_flexion", side="right")
     s_b1 = session_repo.start_session(patient_id="PAT_B", exercise="knee_flexion", side="left")
@@ -146,6 +150,9 @@ def test_active_patients_count_and_zero_when_none_active(repos, client):
     """
     session_repo = repos["session_repo"]
     result_repo = repos["result_repo"]
+    repos["patient_repo"].create_patient({"patient_id": "P1", "name": "Patient P1"})
+    repos["patient_repo"].create_patient({"patient_id": "P2", "name": "Patient P2"})
+    repos["patient_repo"].create_patient({"patient_id": "P3", "name": "Patient P3"})
 
     # P1 has 2 ACTIVE sessions
     s1 = session_repo.start_session(patient_id="P1", exercise="elbow_flexion", side="left")
@@ -182,6 +189,8 @@ def test_average_performance_score_excludes_active_and_no_result(repos, client):
     """
     session_repo = repos["session_repo"]
     result_repo = repos["result_repo"]
+    repos["patient_repo"].create_patient({"patient_id": "P1", "name": "Patient P1"})
+    repos["patient_repo"].create_patient({"patient_id": "P2", "name": "Patient P2"})
 
     # Session 1: P1, COMPLETED, score = 80.0
     s1 = session_repo.start_session(patient_id="P1", exercise="elbow_flexion", side="left")
@@ -223,6 +232,7 @@ def test_bilateral_side_propagation(repos, client):
     """
     session_repo = repos["session_repo"]
     result_repo = repos["result_repo"]
+    repos["patient_repo"].create_patient({"patient_id": "PBilateral", "name": "Patient Bilateral"})
 
     # Left session
     s_left = session_repo.start_session(patient_id="PBilateral", exercise="elbow_flexion", side="left")
@@ -249,6 +259,7 @@ def test_newest_first_ordering(repos, client):
     Sessions must be returned in descending started_at order (newest first).
     """
     session_repo = repos["session_repo"]
+    repos["patient_repo"].create_patient({"patient_id": "POrder", "name": "Patient Order"})
     s1 = session_repo.start_session(patient_id="POrder", exercise="elbow_flexion", side="left")
     s2 = session_repo.start_session(patient_id="POrder", exercise="shoulder_flexion", side="right")
     s3 = session_repo.start_session(patient_id="POrder", exercise="knee_flexion", side="left")
@@ -266,6 +277,7 @@ def test_session_fields_and_result_integrity(repos, client):
     """
     session_repo = repos["session_repo"]
     result_repo = repos["result_repo"]
+    repos["patient_repo"].create_patient({"patient_id": "PIntegrity", "name": "Patient Integrity"})
 
     sid = session_repo.start_session(patient_id="PIntegrity", exercise="shoulder_abduction", side="right")
     result_repo.record_result(
@@ -307,6 +319,7 @@ def test_legacy_session_defaults_to_left(repos, client):
     """
     db = repos["db"]
     with db.session() as s:
+        s.add(Patient(patient_id="PLegacy", name="Patient PLegacy", status="ACTIVE"))
         legacy_sess = Session(
             session_id="S-LEGACY",
             patient_id="PLegacy",

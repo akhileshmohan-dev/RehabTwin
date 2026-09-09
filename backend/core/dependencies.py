@@ -4,12 +4,14 @@ FastAPI dependency injection utilities for RehabTwin backend services.
 from typing import Generator
 from backend.repositories.interfaces import (
     IPatientRepository,
+    IAssignmentRepository,
     ISessionRepository,
     ITelemetryRepository,
     IResultRepository,
 )
 from backend.repositories.sqlalchemy_impl import (
     SQLAlchemyPatientRepository,
+    SQLAlchemyAssignmentRepository,
     SQLAlchemySessionRepository,
     SQLAlchemyTelemetryRepository,
     SQLAlchemyResultRepository,
@@ -33,6 +35,10 @@ def get_database() -> Database:
 
 def get_patient_repo() -> IPatientRepository:
     return SQLAlchemyPatientRepository(get_database())
+
+
+def get_assignment_repo() -> IAssignmentRepository:
+    return SQLAlchemyAssignmentRepository(get_database())
 
 
 def get_session_repo() -> ISessionRepository:

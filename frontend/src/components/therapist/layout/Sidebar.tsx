@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import {
   Activity,
   BarChart3,
@@ -6,6 +7,7 @@ import {
   ChevronDown,
   Dumbbell,
   FileText,
+  Home,
   LayoutDashboard,
   LogOut,
   Settings,
@@ -19,10 +21,6 @@ const navItems = [
   { label: "Patients", icon: Users },
   { label: "Sessions", icon: CalendarDays },
   { label: "Exercises", icon: Dumbbell },
-  { label: "Alerts", icon: Bell, badge: 3 },
-  { label: "Reports", icon: FileText },
-  { label: "Analytics", icon: BarChart3 },
-  { label: "Settings", icon: Settings },
 ];
 
 interface SidebarProps {
@@ -61,6 +59,13 @@ export function Sidebar({ active, onSelect, onClose }: SidebarProps) {
       </div>
 
       <nav className="flex flex-col gap-1 px-4 mt-2">
+        <Link
+          to="/"
+          className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200"
+        >
+          <Home className="size-[18px]" />
+          <span className="flex-1 text-left">Home</span>
+        </Link>
         {navItems.map((item) => {
           const isActive = item.label === active;
           return (
@@ -108,13 +113,13 @@ export function Sidebar({ active, onSelect, onClose }: SidebarProps) {
           <ChevronDown className="size-4 text-sidebar-foreground/40" />
         </div>
 
-        <button
-          type="button"
+        <Link
+          to="/"
           className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground btn-interactive transition-colors"
         >
           <LogOut className="size-[18px] rotate-180" />
-          Logout
-        </button>
+          Return to Hub
+        </Link>
       </div>
     </aside>
   );

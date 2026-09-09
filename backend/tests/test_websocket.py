@@ -19,6 +19,7 @@ import numpy as np
 # Imports
 # ---------------------------------------------------------------------------
 from digital_thread.db import Database
+from digital_thread.models import Patient
 from backend.repositories.sqlalchemy_impl import (
     SQLAlchemySessionRepository,
     SQLAlchemyTelemetryRepository,
@@ -119,6 +120,10 @@ def _mp_valid_pose():
 # ---------------------------------------------------------------------------
 
 def _start_session(db, patient="P_TEST", exercise="elbow_flexion") -> str:
+    with db.session() as s:
+        if not s.query(Patient).filter(Patient.patient_id == patient).first():
+            s.add(Patient(patient_id=patient, name=f"Patient {patient}", status="ACTIVE"))
+            s.commit()
     return SQLAlchemySessionRepository(db).start_session(patient, exercise)
 
 

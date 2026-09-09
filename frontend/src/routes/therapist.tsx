@@ -4,6 +4,8 @@ import {
   Activity,
   AlertTriangle,
   CalendarDays,
+  Dumbbell,
+  Layers,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -13,6 +15,7 @@ import { Header } from "@/components/therapist/layout/Header";
 import { MetricCard } from "@/components/therapist/dashboard/MetricCard";
 import { PatientList } from "@/components/therapist/patients/PatientList";
 import { PatientDetails } from "@/components/therapist/patients/PatientDetails";
+import { AddPatientModal } from "@/components/therapist/patients/AddPatientModal";
 import { LatestSession } from "@/components/therapist/sessions/LatestSession";
 import { ProgressCharts } from "@/components/therapist/dashboard/ProgressCharts";
 import { SessionComparison } from "@/components/therapist/dashboard/SessionComparison";
@@ -45,6 +48,45 @@ export const Route = createFileRoute("/therapist")({
   component: Dashboard,
 });
 
+const CLINICAL_PROTOCOLS = [
+  {
+    id: "elbow_flexion",
+    name: "Elbow Flexion",
+    joint: "Elbow Joint",
+    plane: "Sagittal Plane",
+    normativeRom: "0° – 145°",
+    targetMuscles: "Biceps brachii, Brachialis",
+    description: "Evaluates active and passive elbow flexion excursion. Monitors forearm flexion tracking against upper arm alignment with compensation detection.",
+  },
+  {
+    id: "shoulder_flexion",
+    name: "Shoulder Flexion",
+    joint: "Glenohumeral Joint",
+    plane: "Sagittal Plane",
+    normativeRom: "0° – 180°",
+    targetMuscles: "Anterior deltoid, Coracobrachialis",
+    description: "Tracks anterior sagittal arm elevation. Verifies vertical arm trajectory while ensuring torso stability and preventing lumbar arching.",
+  },
+  {
+    id: "shoulder_abduction",
+    name: "Shoulder Abduction",
+    joint: "Glenohumeral Joint",
+    plane: "Coronal / Frontal Plane",
+    normativeRom: "0° – 180°",
+    targetMuscles: "Middle deltoid, Supraspinatus",
+    description: "Monitors lateral arm elevation in the coronal plane. Detects scapular shrugging, lateral trunk leaning, and elbow hyperextension.",
+  },
+  {
+    id: "knee_flexion",
+    name: "Knee Flexion",
+    joint: "Tibiofemoral Joint",
+    plane: "Sagittal Plane",
+    normativeRom: "0° – 140°",
+    targetMuscles: "Hamstrings, Gastrocnemius",
+    description: "Assesses knee flexion range with hip stability tracking. Detects pelvis tilting and compensatory anterior trunk flexion.",
+  },
+];
+
 export function Dashboard() {
   const [nav, setNav] = useState("Dashboard");
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -59,6 +101,7 @@ export function Dashboard() {
   const [isSidebarMobileOpen, setIsSidebarMobileOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
+  const [isAddPatientOpen, setIsAddPatientOpen] = useState(false);
 
   // Dual-guard race condition protection refs
   const selectedIdRef = useRef(selectedId);
@@ -234,58 +277,178 @@ export function Dashboard() {
               <Users className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
               <h3 className="font-medium text-base text-foreground">No patients registered in the digital thread</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                Start a session in the Patient Portal to initialize patient rehabilitation records.
+                Add a new patient to assign rehabilitation exercises and track progress.
               </p>
+              <button
+                type="button"
+                onClick={() => setIsAddPatientOpen(true)}
+                className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-all"
+              >
+                <Users className="size-3.5" />
+                Add First Patient
+              </button>
             </div>
           )}
 
-          {/* Patient Details & Trends */}
-          <div className="mt-5 grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)_minmax(0,1.05fr)]">
-            <ScrollReveal className="w-full" delay={100}>
-              <PatientList
-                patients={patients}
-                selectedId={selectedId}
-                onSelect={handleSelectPatient}
-              />
-            </ScrollReveal>
+          {/* VIEW: DASHBOARD */}
+          {nav === "Dashboard" && (
+            <>
+              <div className="mt-5 grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)_minmax(0,1.05fr)]">
+                <ScrollReveal className="w-full" delay={100}>
+                  <PatientList
+                    patients={patients}
+                    selectedId={selectedId}
+                    onSelect={handleSelectPatient}
+                    onAddPatientClick={() => setIsAddPatientOpen(true)}
+                  />
+                </ScrollReveal>
 
-            <div className="space-y-5">
-              <ScrollReveal className="w-full" delay={150}>
-                {isLoading ? (
-                  <SkeletonPatientDetails />
-                ) : patient ? (
-                  <PatientDetails patient={patient} />
-                ) : (
-                  <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground text-center">
-                    Select a patient to view clinical profile
-                  </div>
-                )}
+                <div className="space-y-5">
+                  <ScrollReveal className="w-full" delay={150}>
+                    {isLoading ? (
+                      <SkeletonPatientDetails />
+                    ) : patient ? (
+                      <PatientDetails patient={patient} onPatientUpdated={() => loadData(false)} />
+                    ) : (
+                      <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground text-center">
+                        Select a patient to view clinical profile
+                      </div>
+                    )}
+                  </ScrollReveal>
+                  
+                  <ScrollReveal className="w-full" delay={200}>
+                    {isLoading ? (
+                      <div className="rounded-2xl border border-border bg-card p-5 animate-shimmer h-[160px]" />
+                    ) : (
+                      <LatestSession session={latest} />
+                    )}
+                  </ScrollReveal>
+                </div>
+
+                <ScrollReveal className="w-full" delay={250}>
+                  <ProgressCharts sessions={sessions} />
+                </ScrollReveal>
+              </div>
+
+              <div className="mt-5 grid gap-5 xl:grid-cols-2">
+                <ScrollReveal className="w-full" delay={300}>
+                  <SessionComparison sessions={sessions} />
+                </ScrollReveal>
+                <ScrollReveal className="w-full" delay={350}>
+                  <RecentSessions sessions={sessions} />
+                </ScrollReveal>
+              </div>
+            </>
+          )}
+
+          {/* VIEW: PATIENTS */}
+          {nav === "Patients" && (
+            <div className="mt-5 grid gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
+              <ScrollReveal className="w-full" delay={50}>
+                <PatientList
+                  patients={patients}
+                  selectedId={selectedId}
+                  onSelect={handleSelectPatient}
+                  onAddPatientClick={() => setIsAddPatientOpen(true)}
+                />
               </ScrollReveal>
-              
-              <ScrollReveal className="w-full" delay={200}>
-                {isLoading ? (
-                  <div className="rounded-2xl border border-border bg-card p-5 animate-shimmer h-[160px]" />
-                ) : (
-                  <LatestSession session={latest} />
-                )}
-              </ScrollReveal>
+
+              <div className="space-y-5">
+                <ScrollReveal className="w-full" delay={100}>
+                  {patient ? (
+                    <PatientDetails patient={patient} onPatientUpdated={() => loadData(false)} />
+                  ) : (
+                    <div className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+                      Select a patient from the directory to manage their therapy plan and assignments.
+                    </div>
+                  )}
+                </ScrollReveal>
+
+                <ScrollReveal className="w-full" delay={150}>
+                  <RecentSessions sessions={sessions} />
+                </ScrollReveal>
+              </div>
             </div>
+          )}
 
-            <ScrollReveal className="w-full" delay={250}>
-              <ProgressCharts sessions={sessions} />
-            </ScrollReveal>
-          </div>
-
-          {/* Comparisons & Recent Sessions */}
-          <div className="mt-5 grid gap-5 xl:grid-cols-2">
-            <ScrollReveal className="w-full" delay={300}>
-              <SessionComparison sessions={sessions} />
-            </ScrollReveal>
-            <ScrollReveal className="w-full" delay={350}>
+          {/* VIEW: SESSIONS */}
+          {nav === "Sessions" && (
+            <div className="mt-5 space-y-5">
+              <div className="grid gap-5 xl:grid-cols-2">
+                <LatestSession session={latest} />
+                <SessionComparison sessions={sessions} />
+              </div>
               <RecentSessions sessions={sessions} />
-            </ScrollReveal>
-          </div>
+            </div>
+          )}
+
+          {/* VIEW: EXERCISES */}
+          {nav === "Exercises" && (
+            <div className="mt-5">
+              <div className="mb-4">
+                <h2 className="text-xl font-bold text-foreground">Rehabilitation Protocols</h2>
+                <p className="text-xs text-muted-foreground">
+                  Standardized kinematic biomechanical models validated against ISO/IEC digital twin criteria.
+                </p>
+              </div>
+
+              <div className="grid gap-5 sm:grid-cols-2">
+                {CLINICAL_PROTOCOLS.map((proto) => (
+                  <div
+                    key={proto.id}
+                    className="rounded-2xl border border-border bg-card p-5 shadow-card space-y-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="flex size-9 items-center justify-center rounded-xl bg-primary-soft text-primary border border-primary/20">
+                          <Dumbbell className="size-4" />
+                        </div>
+                        <h3 className="font-bold text-base text-foreground">{proto.name}</h3>
+                      </div>
+                      <span className="text-[10px] font-mono bg-muted/70 px-2 py-0.5 rounded text-muted-foreground">
+                        {proto.id}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {proto.description}
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/60 text-xs">
+                      <div>
+                        <span className="text-muted-foreground block text-[11px]">Target Joint:</span>
+                        <strong className="text-foreground">{proto.joint}</strong>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block text-[11px]">Movement Plane:</span>
+                        <strong className="text-foreground">{proto.plane}</strong>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block text-[11px]">Normative ROM:</span>
+                        <strong className="text-foreground">{proto.normativeRom}</strong>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block text-[11px]">Primary Muscles:</span>
+                        <strong className="text-foreground">{proto.targetMuscles}</strong>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* Add Patient Modal */}
+        <AddPatientModal
+          isOpen={isAddPatientOpen}
+          onClose={() => setIsAddPatientOpen(false)}
+          onPatientCreated={(newId) => {
+            setSelectedId(newId);
+            selectedIdRef.current = newId;
+            loadData(false);
+          }}
+        />
 
         <footer className="mt-8 flex flex-wrap justify-end gap-3 text-xs text-muted-foreground border-t border-border/40 pt-4">
           <span>RehabTwin © 2026</span>

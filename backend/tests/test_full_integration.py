@@ -21,12 +21,14 @@ from backend.main import app
 from backend.core.dependencies import (
     get_database,
     get_patient_repo,
+    get_assignment_repo,
     get_session_repo,
     get_telemetry_repo,
     get_result_repo,
 )
 from backend.repositories.sqlalchemy_impl import (
     SQLAlchemyPatientRepository,
+    SQLAlchemyAssignmentRepository,
     SQLAlchemySessionRepository,
     SQLAlchemyTelemetryRepository,
     SQLAlchemyResultRepository,
@@ -130,6 +132,7 @@ class BaseIntegrationTest(unittest.TestCase):
 
         app.dependency_overrides[get_database] = lambda: self.db
         app.dependency_overrides[get_patient_repo] = lambda: SQLAlchemyPatientRepository(self.db)
+        app.dependency_overrides[get_assignment_repo] = lambda: SQLAlchemyAssignmentRepository(self.db)
         app.dependency_overrides[get_session_repo] = lambda: SQLAlchemySessionRepository(self.db)
         app.dependency_overrides[get_telemetry_repo] = lambda: SQLAlchemyTelemetryRepository(self.db)
         app.dependency_overrides[get_result_repo] = lambda: SQLAlchemyResultRepository(self.db)
@@ -158,7 +161,9 @@ class TestPhase5FIntegration(BaseIntegrationTest):
         P1 starts Left Elbow Flexion via REST, streams valid frames via WebSocket,
         completes via END_SESSION + REST /end, and verifies Result & Therapist Dashboard.
         """
-        # 1. Create session via REST API
+        # 1. Register patient and assign exercise via REST API
+        self.client.post("/api/patients", json={"patient_id": "P1", "name": "Patient P1"})
+        self.client.post("/api/patients/P1/exercises", json={"exercise_id": "elbow_flexion", "side": "left"})
         start_resp = self.client.post("/api/sessions", json={
             "patient_id": "P1",
             "exercise": "elbow_flexion",
@@ -225,7 +230,10 @@ class TestPhase5FIntegration(BaseIntegrationTest):
         Patient P1 performs Right Elbow Flexion in a separate session.
         Verifies Result.side='right' and that Left session is not contaminated.
         """
-        # Create Left session first
+        # Register patient and assign exercises
+        self.client.post("/api/patients", json={"patient_id": "P1", "name": "Patient P1"})
+        self.client.post("/api/patients/P1/exercises", json={"exercise_id": "elbow_flexion", "side": "left"})
+        self.client.post("/api/patients/P1/exercises", json={"exercise_id": "elbow_flexion", "side": "right"})
         left_sid = self.client.post("/api/sessions", json={
             "patient_id": "P1",
             "exercise": "elbow_flexion",
@@ -289,6 +297,11 @@ class TestPhase5FIntegration(BaseIntegrationTest):
         Frames are interleaved over concurrent WebSockets.
         Verifies no cross-talk of session IDs, pipelines, telemetry, sides, or results.
         """
+        self.client.post("/api/patients", json={"patient_id": "P1", "name": "Patient P1"})
+        self.client.post("/api/patients/P1/exercises", json={"exercise_id": "elbow_flexion", "side": "left"})
+        self.client.post("/api/patients", json={"patient_id": "P2", "name": "Patient P2"})
+        self.client.post("/api/patients/P2/exercises", json={"exercise_id": "knee_flexion", "side": "right"})
+
         s1 = self.client.post("/api/sessions", json={
             "patient_id": "P1", "exercise": "elbow_flexion", "side": "left"
         }).json()["session_id"]
@@ -368,6 +381,8 @@ class TestPhase5FIntegration(BaseIntegrationTest):
         Streams VALID → INVALID → VALID frames.
         Verifies invalid frames do not reset, corrupt, or increment repetitions/ROM.
         """
+        self.client.post("/api/patients", json={"patient_id": "P_CONT", "name": "Patient Cont"})
+        self.client.post("/api/patients/P_CONT/exercises", json={"exercise_id": "elbow_flexion", "side": "left"})
         sid = self.client.post("/api/sessions", json={
             "patient_id": "P_CONT", "exercise": "elbow_flexion", "side": "left"
         }).json()["session_id"]
@@ -422,6 +437,8 @@ class TestPhase5FIntegration(BaseIntegrationTest):
         Verifies Result is persisted by disconnect handler, session remains ACTIVE,
         and subsequent REST /end marks COMPLETED.
         """
+        self.client.post("/api/patients", json={"patient_id": "P_DISC", "name": "Patient Disc"})
+        self.client.post("/api/patients/P_DISC/exercises", json={"exercise_id": "elbow_flexion", "side": "left"})
         sid = self.client.post("/api/sessions", json={
             "patient_id": "P_DISC", "exercise": "elbow_flexion", "side": "left"
         }).json()["session_id"]
@@ -456,6 +473,8 @@ class TestPhase5FIntegration(BaseIntegrationTest):
         Session starts, WebSocket disconnects with 0 valid frames.
         Verifies no Result exists, session remains ACTIVE, REST /end returns 400.
         """
+        self.client.post("/api/patients", json={"patient_id": "P_DISC2", "name": "Patient Disc 2"})
+        self.client.post("/api/patients/P_DISC2/exercises", json={"exercise_id": "elbow_flexion", "side": "left"})
         sid = self.client.post("/api/sessions", json={
             "patient_id": "P_DISC2", "exercise": "elbow_flexion", "side": "left"
         }).json()["session_id"]
@@ -494,6 +513,8 @@ class TestPhase5FIntegration(BaseIntegrationTest):
         Attempt REST /end directly on an ACTIVE session with no Result.
         Verifies 400, no fake Result, and status remains ACTIVE.
         """
+        self.client.post("/api/patients", json={"patient_id": "P_NORES", "name": "Patient NoRes"})
+        self.client.post("/api/patients/P_NORES/exercises", json={"exercise_id": "elbow_flexion", "side": "left"})
         sid = self.client.post("/api/sessions", json={
             "patient_id": "P_NORES", "exercise": "elbow_flexion", "side": "left"
         }).json()["session_id"]
@@ -516,6 +537,8 @@ class TestPhase5FIntegration(BaseIntegrationTest):
         creates a new Database instance pointing to the same file, and verifies
         all records and dashboard aggregations survive intact.
         """
+        self.client.post("/api/patients", json={"patient_id": "P_DURABLE", "name": "Patient Durable"})
+        self.client.post("/api/patients/P_DURABLE/exercises", json={"exercise_id": "shoulder_abduction", "side": "right"})
         sid = self.client.post("/api/sessions", json={
             "patient_id": "P_DURABLE", "exercise": "shoulder_abduction", "side": "right"
         }).json()["session_id"]
@@ -542,6 +565,7 @@ class TestPhase5FIntegration(BaseIntegrationTest):
 
         app.dependency_overrides[get_database] = lambda: restarted_db
         app.dependency_overrides[get_patient_repo] = lambda: SQLAlchemyPatientRepository(restarted_db)
+        app.dependency_overrides[get_assignment_repo] = lambda: SQLAlchemyAssignmentRepository(restarted_db)
         app.dependency_overrides[get_session_repo] = lambda: SQLAlchemySessionRepository(restarted_db)
         app.dependency_overrides[get_telemetry_repo] = lambda: SQLAlchemyTelemetryRepository(restarted_db)
         app.dependency_overrides[get_result_repo] = lambda: SQLAlchemyResultRepository(restarted_db)
@@ -582,7 +606,10 @@ class TestPhase5FIntegration(BaseIntegrationTest):
         Completed left and right sessions of the same exercise.
         Verifies dashboard history preserves both sides distinctly.
         """
-        # Create Left session
+        # Register patient and create Left session
+        self.client.post("/api/patients", json={"patient_id": "P_ISO", "name": "Patient Iso"})
+        self.client.post("/api/patients/P_ISO/exercises", json={"exercise_id": "elbow_flexion", "side": "left"})
+        self.client.post("/api/patients/P_ISO/exercises", json={"exercise_id": "elbow_flexion", "side": "right"})
         s_left = self.client.post("/api/sessions", json={
             "patient_id": "P_ISO", "exercise": "elbow_flexion", "side": "left"
         }).json()["session_id"]
@@ -614,6 +641,9 @@ class TestPhase5FIntegration(BaseIntegrationTest):
         Patient has completed sessions for different exercises.
         Verifies both are present with distinct exercises and accurate individual results.
         """
+        self.client.post("/api/patients", json={"patient_id": "P_EX", "name": "Patient Ex"})
+        self.client.post("/api/patients/P_EX/exercises", json={"exercise_id": "elbow_flexion", "side": "left"})
+        self.client.post("/api/patients/P_EX/exercises", json={"exercise_id": "knee_flexion", "side": "left"})
         s_elbow = self.client.post("/api/sessions", json={
             "patient_id": "P_EX", "exercise": "elbow_flexion", "side": "left"
         }).json()["session_id"]
@@ -645,7 +675,10 @@ class TestPhase5FIntegration(BaseIntegrationTest):
         Verifies dashboard API returns empty results list, average score excludes it,
         and no fabricated 0.0 scores contaminate the overview.
         """
-        # Create session 1 with Result
+        # Register patient and create session 1 with Result
+        self.client.post("/api/patients", json={"patient_id": "P_NORESULT", "name": "Patient NoResult"})
+        self.client.post("/api/patients/P_NORESULT/exercises", json={"exercise_id": "elbow_flexion", "side": "left"})
+        self.client.post("/api/patients/P_NORESULT/exercises", json={"exercise_id": "elbow_flexion", "side": "right"})
         s1 = self.client.post("/api/sessions", json={
             "patient_id": "P_NORESULT", "exercise": "elbow_flexion", "side": "left"
         }).json()["session_id"]

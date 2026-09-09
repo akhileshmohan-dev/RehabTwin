@@ -9,7 +9,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
 from digital_thread.db import Database
-from digital_thread.models import Session, Frame, Result, utc_now
+from digital_thread.models import Patient, Session, Frame, Result, utc_now
 
 
 def test_sqlite_foreign_keys_pragma_enabled(tmp_path):
@@ -71,6 +71,7 @@ def test_valid_parent_and_children_persist_successfully(tmp_path):
     db.create_schema()
 
     with db.session() as session:
+        session.add(Patient(patient_id="P001", name="Patient P001", status="ACTIVE"))
         sess = Session(
             session_id="VALID-S001",
             patient_id="P001",

@@ -4,8 +4,20 @@ FastAPI router handling session lifecycle and frame/result recording endpoints.
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from backend.core.dependencies import get_session_repo, get_telemetry_repo, get_result_repo
-from backend.repositories.interfaces import ISessionRepository, ITelemetryRepository, IResultRepository
+from backend.core.dependencies import (
+    get_session_repo,
+    get_telemetry_repo,
+    get_result_repo,
+    get_patient_repo,
+    get_assignment_repo,
+)
+from backend.repositories.interfaces import (
+    ISessionRepository,
+    ITelemetryRepository,
+    IResultRepository,
+    IPatientRepository,
+    IAssignmentRepository,
+)
 from backend.services.session_service import (
     SessionService,
     SessionNotFoundException,
@@ -14,6 +26,8 @@ from backend.services.session_service import (
     InvalidExerciseException,
     InvalidSideException,
 )
+from backend.services.patient_service import PatientNotActiveException, PatientNotFoundException
+from backend.services.assignment_service import ExerciseNotAssignedException, AssignmentNotFoundException
 from backend.schemas.session import (
     StartSessionRequest,
     StartSessionResponse,
@@ -35,12 +49,16 @@ router = APIRouter(
 def get_session_service(
     session_repo: ISessionRepository = Depends(get_session_repo),
     telemetry_repo: ITelemetryRepository = Depends(get_telemetry_repo),
-    result_repo: IResultRepository = Depends(get_result_repo)
+    result_repo: IResultRepository = Depends(get_result_repo),
+    patient_repo: IPatientRepository = Depends(get_patient_repo),
+    assignment_repo: IAssignmentRepository = Depends(get_assignment_repo),
 ) -> SessionService:
     return SessionService(
         session_repo=session_repo,
         telemetry_repo=telemetry_repo,
-        result_repo=result_repo
+        result_repo=result_repo,
+        patient_repo=patient_repo,
+        assignment_repo=assignment_repo,
     )
 
 
@@ -59,6 +77,16 @@ def start_session(
     except (InvalidExerciseException, InvalidSideException) as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except (PatientNotActiveException, ExerciseNotAssignedException, AssignmentNotFoundException) as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except PatientNotFoundException as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e),
         )
 

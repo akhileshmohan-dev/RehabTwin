@@ -21,7 +21,7 @@ import numpy as np
 from fastapi.testclient import TestClient
 
 from digital_thread.db import Database
-from digital_thread.models import Frame
+from digital_thread.models import Frame, Patient
 from backend.repositories.sqlalchemy_impl import (
     SQLAlchemySessionRepository,
     SQLAlchemyTelemetryRepository,
@@ -72,6 +72,9 @@ class TestWebSocketValidation(unittest.TestCase):
         app.dependency_overrides[get_result_repo] = lambda: self.result_repo
 
         self.client = TestClient(app, raise_server_exceptions=False)
+        with self.db.session() as s:
+            s.add(Patient(patient_id="P001", name="Patient P001", status="ACTIVE"))
+            s.commit()
 
     def tearDown(self):
         app.dependency_overrides.clear()

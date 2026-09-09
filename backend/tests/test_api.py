@@ -58,12 +58,16 @@ class TestSessionService(unittest.TestCase):
         self.db = Database("sqlite:///:memory:")
         self.db.create_schema()
         self.session_repo = SQLAlchemySessionRepository(self.db)
+        self.patient_repo = SQLAlchemyPatientRepository(self.db)
         self.telemetry_repo = SQLAlchemyTelemetryRepository(self.db)
         self.result_repo = SQLAlchemyResultRepository(self.db)
+        self.patient_repo.create_patient({"patient_id": "PATIENT-TEST", "name": "Patient TEST", "status": "ACTIVE"})
+        self.patient_repo.create_patient({"patient_id": "PATIENT-001", "name": "Patient 001", "status": "ACTIVE"})
         self.service = SessionService(
             session_repo=self.session_repo,
             telemetry_repo=self.telemetry_repo,
-            result_repo=self.result_repo
+            result_repo=self.result_repo,
+            patient_repo=self.patient_repo,
         )
 
     def test_start_and_get_session(self):
@@ -192,10 +196,14 @@ class TestPatientService(unittest.TestCase):
         self.telemetry_repo = SQLAlchemyTelemetryRepository(self.db)
         self.result_repo = SQLAlchemyResultRepository(self.db)
         
+        self.patient_repo.create_patient({"patient_id": "PATIENT-A", "name": "Patient A", "status": "ACTIVE"})
+        self.patient_repo.create_patient({"patient_id": "PATIENT-B", "name": "Patient B", "status": "ACTIVE"})
+
         self.session_service = SessionService(
             session_repo=self.session_repo,
             telemetry_repo=self.telemetry_repo,
-            result_repo=self.result_repo
+            result_repo=self.result_repo,
+            patient_repo=self.patient_repo,
         )
         self.patient_service = PatientService(patient_repo=self.patient_repo)
 
@@ -228,11 +236,11 @@ class TestPatientService(unittest.TestCase):
         self.assertEqual(history.sessions[1].session_id, s1.session_id)
         self.assertEqual(history.sessions[1].results[0].repetitions, 10)
 
-        # Retrieve patient list
+        # Retrieve patient list (PATIENT-A and PATIENT-B both persist)
         patient_list = self.patient_service.list_patients()
-        self.assertEqual(patient_list.total_patients, 1)
-        self.assertEqual(patient_list.patients[0].patient_id, "PATIENT-A")
-        self.assertEqual(patient_list.patients[0].total_sessions, 2)
+        self.assertEqual(patient_list.total_patients, 2)
+        patient_a = next(p for p in patient_list.patients if p.patient_id == "PATIENT-A")
+        self.assertEqual(patient_a.total_sessions, 2)
 
 
 class TestRehabService(unittest.TestCase):

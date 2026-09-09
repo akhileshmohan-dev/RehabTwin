@@ -2,7 +2,19 @@
  * Data access layer for RehabTwin.
  * Purely backend-driven — no mock data or synthetic clinical metrics.
  */
-import type { DashboardStats, Patient, Session, SessionStatus, Exercise, MovementQuality } from "@/types/rehab";
+import type {
+  DashboardStats,
+  Patient,
+  Session,
+  SessionStatus,
+  Exercise,
+  MovementQuality,
+  PatientAssignment,
+  PatientCreatePayload,
+  PatientUpdatePayload,
+  AssignmentCreatePayload,
+  AssignmentUpdatePayload,
+} from "@/types/rehab";
 
 export const API_BASE_URL = import.meta.env["VITE_API_BASE_URL"] || "http://127.0.0.1:8000";
 
@@ -40,12 +52,20 @@ export async function fetchPatientsOverview(): Promise<PatientsOverviewResponse>
 
   const patients: Patient[] = (data.patients || []).map((p: any) => ({
     id: p.patient_id,
-    name: `Patient ${p.patient_id.replace(/\D/g, "") || p.patient_id}`,
+    name: p.name || p.patient_id,
     sessionCount: p.total_sessions ?? 0,
     activeSessions: p.active_sessions ?? 0,
     completedSessions: p.completed_sessions ?? 0,
     avgPerformanceScore: p.average_performance_score ?? null,
     lastActive: p.last_active,
+    age: p.age,
+    gender: p.gender,
+    phone: p.phone,
+    email: p.email,
+    notes: p.notes,
+    status: p.status || "ACTIVE",
+    created_at: p.created_at,
+    updated_at: p.updated_at,
   }));
 
   return { stats, patients };
@@ -54,6 +74,183 @@ export async function fetchPatientsOverview(): Promise<PatientsOverviewResponse>
 export async function fetchPatients(): Promise<Patient[]> {
   const overview = await fetchPatientsOverview();
   return overview.patients;
+}
+
+export async function fetchPatient(patientId: string): Promise<Patient> {
+  const response = await fetch(`${API_BASE_URL}/api/patients/${patientId}`);
+  if (!response.ok) throw new Error(`Failed to fetch patient ${patientId}`);
+  const p = await response.json();
+  return {
+    id: p.patient_id,
+    name: p.name || p.patient_id,
+    sessionCount: 0,
+    activeSessions: 0,
+    completedSessions: 0,
+    avgPerformanceScore: null,
+    age: p.age,
+    gender: p.gender,
+    phone: p.phone,
+    email: p.email,
+    notes: p.notes,
+    status: p.status || "ACTIVE",
+    created_at: p.created_at,
+    updated_at: p.updated_at,
+  };
+}
+
+export async function createPatient(data: PatientCreatePayload): Promise<Patient> {
+  const response = await fetch(`${API_BASE_URL}/api/patients`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    let errorMsg = `Failed to create patient: ${response.statusText}`;
+    try {
+      const err = await response.json();
+      if (err.detail) errorMsg = err.detail;
+    } catch {}
+    throw new Error(errorMsg);
+  }
+  const p = await response.json();
+  return {
+    id: p.patient_id,
+    name: p.name,
+    sessionCount: 0,
+    activeSessions: 0,
+    completedSessions: 0,
+    avgPerformanceScore: null,
+    age: p.age,
+    gender: p.gender,
+    phone: p.phone,
+    email: p.email,
+    notes: p.notes,
+    status: p.status || "ACTIVE",
+    created_at: p.created_at,
+    updated_at: p.updated_at,
+  };
+}
+
+export async function updatePatient(patientId: string, updates: PatientUpdatePayload): Promise<Patient> {
+  const response = await fetch(`${API_BASE_URL}/api/patients/${patientId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
+  });
+  if (!response.ok) {
+    let errorMsg = `Failed to update patient: ${response.statusText}`;
+    try {
+      const err = await response.json();
+      if (err.detail) errorMsg = err.detail;
+    } catch {}
+    throw new Error(errorMsg);
+  }
+  const p = await response.json();
+  return {
+    id: p.patient_id,
+    name: p.name,
+    sessionCount: 0,
+    activeSessions: 0,
+    completedSessions: 0,
+    avgPerformanceScore: null,
+    age: p.age,
+    gender: p.gender,
+    phone: p.phone,
+    email: p.email,
+    notes: p.notes,
+    status: p.status || "ACTIVE",
+    created_at: p.created_at,
+    updated_at: p.updated_at,
+  };
+}
+
+export async function deactivatePatient(patientId: string): Promise<Patient> {
+  const response = await fetch(`${API_BASE_URL}/api/patients/${patientId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    let errorMsg = `Failed to deactivate patient: ${response.statusText}`;
+    try {
+      const err = await response.json();
+      if (err.detail) errorMsg = err.detail;
+    } catch {}
+    throw new Error(errorMsg);
+  }
+  const p = await response.json();
+  return {
+    id: p.patient_id,
+    name: p.name,
+    sessionCount: 0,
+    activeSessions: 0,
+    completedSessions: 0,
+    avgPerformanceScore: null,
+    age: p.age,
+    gender: p.gender,
+    phone: p.phone,
+    email: p.email,
+    notes: p.notes,
+    status: p.status || "INACTIVE",
+    created_at: p.created_at,
+    updated_at: p.updated_at,
+  };
+}
+
+export async function fetchPatientAssignments(patientId: string, activeOnly = false): Promise<PatientAssignment[]> {
+  const response = await fetch(`${API_BASE_URL}/api/patients/${patientId}/exercises?active_only=${activeOnly}`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch exercise assignments for ${patientId}`);
+  }
+  const data = await response.json();
+  return data.assignments || [];
+}
+
+export async function assignExercise(patientId: string, data: AssignmentCreatePayload): Promise<PatientAssignment> {
+  const response = await fetch(`${API_BASE_URL}/api/patients/${patientId}/exercises`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    let errorMsg = `Failed to assign exercise: ${response.statusText}`;
+    try {
+      const err = await response.json();
+      if (err.detail) errorMsg = err.detail;
+    } catch {}
+    throw new Error(errorMsg);
+  }
+  return await response.json();
+}
+
+export async function updateAssignment(patientId: string, assignmentId: number, data: AssignmentUpdatePayload): Promise<PatientAssignment> {
+  const response = await fetch(`${API_BASE_URL}/api/patients/${patientId}/exercises/${assignmentId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    let errorMsg = `Failed to update assignment: ${response.statusText}`;
+    try {
+      const err = await response.json();
+      if (err.detail) errorMsg = err.detail;
+    } catch {}
+    throw new Error(errorMsg);
+  }
+  return await response.json();
+}
+
+export async function deactivateAssignment(patientId: string, assignmentId: number): Promise<PatientAssignment> {
+  const response = await fetch(`${API_BASE_URL}/api/patients/${patientId}/exercises/${assignmentId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    let errorMsg = `Failed to deactivate assignment: ${response.statusText}`;
+    try {
+      const err = await response.json();
+      if (err.detail) errorMsg = err.detail;
+    } catch {}
+    throw new Error(errorMsg);
+  }
+  return await response.json();
 }
 
 export async function fetchPatientSessions(patientId: string): Promise<Session[]> {
@@ -132,25 +329,39 @@ export async function fetchPatientSessions(patientId: string): Promise<Session[]
 // Session execution functions preserved for the Patient Portal
 export async function startSession(
   patientId: string,
-  exercise: string = "elbow_flexion",
-  side: string = "left"
+  assignmentId?: number,
+  exercise?: string,
+  side?: string
 ) {
+  const payload: any = { patient_id: patientId };
+  if (assignmentId !== undefined && assignmentId !== null) {
+    payload.assignment_id = assignmentId;
+  }
+  if (exercise) {
+    payload.exercise = exercise;
+  }
+  if (side) {
+    payload.side = side;
+  }
+
   const response = await fetch(`${API_BASE_URL}/api/sessions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      patient_id: patientId,
-      exercise: exercise,
-      side: side,
-    }),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`Error starting session (${response.status}):`, errorText);
-    throw new Error(`Failed to start session: ${response.statusText}`);
+    let errorDetail = response.statusText;
+    try {
+      const errorJson = await response.json();
+      if (errorJson?.detail) {
+        errorDetail = errorJson.detail;
+      }
+    } catch {}
+    console.error(`Error starting session (${response.status}):`, errorDetail);
+    throw new Error(errorDetail || `Failed to start session: ${response.statusText}`);
   }
 
   return await response.json();

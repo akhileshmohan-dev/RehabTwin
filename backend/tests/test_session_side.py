@@ -20,6 +20,7 @@ from backend.repositories.sqlalchemy_impl import (
     SQLAlchemyPatientRepository,
     SQLAlchemyTelemetryRepository,
     SQLAlchemyResultRepository,
+    SQLAlchemyAssignmentRepository,
 )
 from backend.services.session_service import SessionService, InvalidSideException
 from backend.schemas.session import StartSessionRequest
@@ -29,6 +30,7 @@ from backend.core.dependencies import (
     get_patient_repo,
     get_telemetry_repo,
     get_result_repo,
+    get_assignment_repo,
 )
 from backend.main import app
 
@@ -58,11 +60,14 @@ class TestSessionSide(unittest.TestCase):
         self.patient_repo = SQLAlchemyPatientRepository(self.db)
         self.telemetry_repo = SQLAlchemyTelemetryRepository(self.db)
         self.result_repo = SQLAlchemyResultRepository(self.db)
+        self.assignment_repo = SQLAlchemyAssignmentRepository(self.db)
 
         self.service = SessionService(
             session_repo=self.session_repo,
             telemetry_repo=self.telemetry_repo,
             result_repo=self.result_repo,
+            patient_repo=self.patient_repo,
+            assignment_repo=self.assignment_repo,
         )
 
         # Override dependencies for FastAPI TestClient
@@ -71,8 +76,25 @@ class TestSessionSide(unittest.TestCase):
         app.dependency_overrides[get_patient_repo] = lambda: self.patient_repo
         app.dependency_overrides[get_telemetry_repo] = lambda: self.telemetry_repo
         app.dependency_overrides[get_result_repo] = lambda: self.result_repo
+        app.dependency_overrides[get_assignment_repo] = lambda: self.assignment_repo
 
         self.client = TestClient(app)
+
+        # Register test patients explicitly for Phase 6A/6B architecture
+        self.patient_repo.create_patient({"patient_id": "P1", "name": "Patient P1", "status": "ACTIVE"})
+        self.patient_repo.create_patient({"patient_id": "P-RES", "name": "Patient P-RES", "status": "ACTIVE"})
+        self.patient_repo.create_patient({"patient_id": "P-API", "name": "Patient P-API", "status": "ACTIVE"})
+        self.patient_repo.create_patient({"patient_id": "P-HIST", "name": "Patient P-HIST", "status": "ACTIVE"})
+
+        # Assign exercises for testing
+        self.assignment_repo.assign_exercise({"patient_id": "P1", "exercise_id": "elbow_flexion", "side": "left", "active": True})
+        self.assignment_repo.assign_exercise({"patient_id": "P1", "exercise_id": "knee_flexion", "side": "right", "active": True})
+        self.assignment_repo.assign_exercise({"patient_id": "P1", "exercise_id": "shoulder_flexion", "side": "right", "active": True})
+        self.assignment_repo.assign_exercise({"patient_id": "P1", "exercise_id": "shoulder_abduction", "side": "left", "active": True})
+
+        self.assignment_repo.assign_exercise({"patient_id": "P-API", "exercise_id": "elbow_flexion", "side": "left", "active": True})
+        self.assignment_repo.assign_exercise({"patient_id": "P-API", "exercise_id": "elbow_flexion", "side": "right", "active": True})
+        self.assignment_repo.assign_exercise({"patient_id": "P-API", "exercise_id": "knee_flexion", "side": "right", "active": True})
 
     def tearDown(self):
         app.dependency_overrides.clear()

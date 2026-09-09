@@ -119,6 +119,14 @@ class TestSessionCompletionPhase5D(unittest.TestCase):
         self.result_repo = SQLAlchemyResultRepository(self.db)
         self.patient_repo = SQLAlchemyPatientRepository(self.db)
 
+        # Register test patients explicitly for Phase 6A/6B architecture
+        for pid in (
+            "PATIENT-001", "PATIENT-NO-RES", "PATIENT-MAPPING", "PATIENT-AAA",
+            "PATIENT-BBB", "PATIENT-BILATERAL", "PATIENT-MULTI", "PATIENT-FULL-STATE",
+            "PATIENT-SCORE"
+        ):
+            self.patient_repo.create_patient({"patient_id": pid, "name": f"Patient {pid}", "status": "ACTIVE"})
+
     def tearDown(self):
         app.dependency_overrides.clear()
         _cleanup_db(self.db)

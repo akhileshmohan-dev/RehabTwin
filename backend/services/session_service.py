@@ -10,6 +10,8 @@ from backend.repositories.interfaces import (
     ISessionRepository,
     ITelemetryRepository,
     IResultRepository,
+    IPatientRepository,
+    IAssignmentRepository,
 )
 from backend.schemas.session import (
     StartSessionRequest,
@@ -82,22 +84,92 @@ class SessionService:
         session_repo: ISessionRepository,
         telemetry_repo: ITelemetryRepository,
         result_repo: IResultRepository,
+        patient_repo: Optional[IPatientRepository] = None,
+        assignment_repo: Optional[IAssignmentRepository] = None,
     ):
         self.session_repo = session_repo
         self.telemetry_repo = telemetry_repo
         self.result_repo = result_repo
+        self.patient_repo = patient_repo
+        self.assignment_repo = assignment_repo
 
     def start_session(self, request: StartSessionRequest) -> StartSessionResponse:
         """Start a new rehabilitation session."""
-        if request.exercise not in EXERCISE_REGISTRY:
-            raise InvalidExerciseException(request.exercise)
-        side = normalize_side(request.side)
-        sid = self.session_repo.start_session(
-            patient_id=request.patient_id,
-            exercise=request.exercise,
-            side=side,
-            session_id=request.session_id
+        from backend.services.patient_service import (
+            PatientNotFoundException,
+            PatientNotActiveException,
         )
+        from backend.services.assignment_service import (
+            AssignmentNotFoundException,
+            ExerciseNotAssignedException,
+        )
+        from backend.repositories.interfaces import PatientNotFoundInRepoException
+
+        # 1. Patient verification: patient must exist and be ACTIVE
+        if self.patient_repo:
+            patient = self.patient_repo.get_patient(request.patient_id)
+            if not patient:
+                raise PatientNotFoundException(request.patient_id)
+            if patient.get("status") == "INACTIVE":
+                raise PatientNotActiveException(request.patient_id)
+
+        target_rom: Optional[float] = None
+        target_repetitions: Optional[int] = None
+        assignment_id: Optional[int] = None
+        exercise: str = ""
+        side: str = ""
+
+        # 2. Assignment verification
+        if request.assignment_id is not None:
+            if not self.assignment_repo:
+                raise ExerciseNotAssignedException("Exercise assignment repository not configured.")
+            assignment = self.assignment_repo.get_assignment(request.assignment_id)
+            if not assignment or assignment.get("patient_id") != request.patient_id:
+                raise AssignmentNotFoundException(request.assignment_id)
+            if not assignment.get("active"):
+                raise ExerciseNotAssignedException(f"Assignment '{request.assignment_id}' is inactive.")
+
+            exercise = assignment["exercise_id"]
+            side = assignment["side"]
+            assignment_id = assignment["id"]
+            target_rom = assignment.get("target_rom")
+            target_repetitions = assignment.get("target_repetitions")
+        else:
+            if not request.exercise:
+                raise InvalidExerciseException("Exercise must be specified when assignment_id is omitted.")
+            if request.exercise not in EXERCISE_REGISTRY:
+                raise InvalidExerciseException(request.exercise)
+            side = normalize_side(request.side)
+            exercise = request.exercise
+
+            if self.assignment_repo:
+                active_assignments = self.assignment_repo.list_assignments(request.patient_id, active_only=True)
+                matches = [
+                    a for a in active_assignments
+                    if a["exercise_id"] == exercise and a["side"] == side
+                ]
+                if not matches:
+                    raise ExerciseNotAssignedException(
+                        f"Exercise '{exercise}' ({side}) is not assigned to patient '{request.patient_id}'."
+                    )
+                assignment = matches[0]
+                assignment_id = assignment["id"]
+                target_rom = assignment.get("target_rom")
+                target_repetitions = assignment.get("target_repetitions")
+
+        if exercise not in EXERCISE_REGISTRY:
+            raise InvalidExerciseException(exercise)
+
+        try:
+            sid = self.session_repo.start_session(
+                patient_id=request.patient_id,
+                exercise=exercise,
+                side=side,
+                session_id=request.session_id
+            )
+        except PatientNotFoundInRepoException:
+            raise PatientNotFoundException(request.patient_id)
+
         session_data = self.session_repo.get_session(sid)
         return StartSessionResponse(
             session_id=sid,
@@ -105,7 +177,10 @@ class SessionService:
             exercise=session_data["exercise"],
             side=session_data.get("side", "left"),
             status=session_data["status"],
-            started_at=session_data.get("started_at")
+            started_at=session_data.get("started_at"),
+            assignment_id=assignment_id,
+            target_rom=target_rom,
+            target_repetitions=target_repetitions,
         )
 
     def get_session(self, session_id: str) -> SessionResponse:

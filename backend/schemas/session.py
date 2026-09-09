@@ -7,8 +7,9 @@ from pydantic import BaseModel, Field
 
 class StartSessionRequest(BaseModel):
     patient_id: str = Field(..., description="Unique patient identifier", json_schema_extra={"example": "PATIENT-001"})
-    exercise: str = Field(..., description="Exercise key e.g. 'elbow_flexion'", json_schema_extra={"example": "elbow_flexion"})
-    side: Optional[str] = Field("left", description="Body side: 'left' or 'right'", json_schema_extra={"example": "left"})
+    assignment_id: Optional[int] = Field(None, description="Authoritative exercise assignment ID", json_schema_extra={"example": 1})
+    exercise: Optional[str] = Field(None, description="Exercise key e.g. 'elbow_flexion'", json_schema_extra={"example": "elbow_flexion"})
+    side: Optional[str] = Field(None, description="Body side: 'left' or 'right'", json_schema_extra={"example": "left"})
     session_id: Optional[str] = Field(None, description="Optional custom session ID", json_schema_extra={"example": "S-001"})
 
 
@@ -19,6 +20,9 @@ class StartSessionResponse(BaseModel):
     side: str = "left"
     status: str = "ACTIVE"
     started_at: Optional[str] = None
+    assignment_id: Optional[int] = None
+    target_rom: Optional[float] = None
+    target_repetitions: Optional[int] = None
 
 
 class SessionResponse(BaseModel):

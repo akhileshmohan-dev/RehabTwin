@@ -1,9 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
 import {
   Activity,
   ArrowRight,
-  Sparkles,
   Stethoscope,
   User,
 } from "lucide-react";
@@ -24,13 +22,6 @@ export const Route = createFileRoute("/")({
 });
 
 function PortalHub() {
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  const handlePatientClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setToastMessage("Patient Portal is currently under construction. Stay tuned!");
-    setTimeout(() => setToastMessage(null), 3000);
-  };
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12 overflow-x-hidden font-sans">

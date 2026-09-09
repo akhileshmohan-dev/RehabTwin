@@ -7,7 +7,7 @@ from backend.repositories.sqlalchemy_impl import (
     SQLAlchemyTelemetryRepository,
     SQLAlchemyResultRepository,
 )
-from digital_thread.models import Result
+from digital_thread.models import Result, Patient
 
 
 @pytest.fixture
@@ -16,6 +16,9 @@ def db():
     db_url = "sqlite:///:memory:"
     database = Database(db_url)
     database.create_schema()
+    with database.session() as s:
+        s.add(Patient(patient_id="P123", name="Patient P123", status="ACTIVE"))
+        s.commit()
     yield database
     database.engine.dispose()
 
@@ -40,11 +43,16 @@ def test_patient_repository_isolation(db):
     session_repo = SQLAlchemySessionRepository(db)
     patient_repo = SQLAlchemyPatientRepository(db)
     
+    with db.session() as s:
+        s.add(Patient(patient_id="PATIENT_A", name="Patient PATIENT_A", status="ACTIVE"))
+        s.add(Patient(patient_id="PATIENT_B", name="Patient PATIENT_B", status="ACTIVE"))
+        s.commit()
+    
     session_repo.start_session("PATIENT_A", "Exercise 1")
     session_repo.start_session("PATIENT_A", "Exercise 2")
     session_repo.start_session("PATIENT_B", "Exercise 1")
     
-    patients = patient_repo.list_patients()
+    patients = [p for p in patient_repo.list_patients() if p["patient_id"] in ("PATIENT_A", "PATIENT_B")]
     assert len(patients) == 2
     
     patient_a = next(p for p in patients if p["patient_id"] == "PATIENT_A")
@@ -138,6 +146,9 @@ def test_concurrent_result_idempotency():
         db_url = f"sqlite:///{db_path}?check_same_thread=False"
         database = Database(db_url)
         database.create_schema()
+        with database.session() as s:
+            s.add(Patient(patient_id="P999", name="Patient P999", status="ACTIVE"))
+            s.commit()
         
         session_repo = SQLAlchemySessionRepository(database)
         result_repo = SQLAlchemyResultRepository(database)
