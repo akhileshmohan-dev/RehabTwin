@@ -6,6 +6,7 @@ import {
   User,
 } from "lucide-react";
 import { ScrollReveal } from "@/components/animations/ScrollReveal";
+import { Logo } from "@/components/common/Logo";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -32,15 +33,14 @@ function PortalHub() {
       {/* Main Container */}
       <div className="z-10 w-full max-w-4xl text-center space-y-12">
         {/* Header */}
-        <ScrollReveal className="space-y-4" delay={0}>
+        <ScrollReveal className="space-y-6 flex flex-col items-center" delay={0}>
+          <Logo variant="stacked" size="xl" className="transform hover:scale-105 transition-transform duration-300" />
+          
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary-soft px-4 py-1.5 text-sm font-semibold text-primary">
             <Activity className="size-4 animate-pulse" />
-            <span>Next-Gen Physical Rehabilitation</span>
+            <span>Next-Gen Physical Rehabilitation & Digital Twin</span>
           </div>
           
-          <h1 className="text-4xl font-extrabold tracking-tight text-foreground sm:text-6xl">
-            Welcome to <span className="bg-gradient-to-r from-primary to-emerald-600 bg-clip-text text-transparent">RehabTwin</span>
-          </h1>
           <p className="mx-auto max-w-2xl text-lg text-muted-foreground sm:text-xl">
             A comprehensive clinical platform for therapists and patients. Monitor Range of Motion, track bio-feedback sessions, and optimize recovery paths.
           </p>

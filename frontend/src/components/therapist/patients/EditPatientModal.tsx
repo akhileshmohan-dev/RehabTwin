@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, UserCheck, AlertCircle } from "lucide-react";
 import { updatePatient } from "@/data/rehabService";
 import type { Patient, PatientUpdatePayload } from "@/types/rehab";
@@ -28,20 +28,31 @@ export function EditPatientModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Track previous open state and patient ID to avoid resetting form on background data polling
+  const prevOpenRef = useRef(false);
+  const prevPatientIdRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (patient) {
-      setFormData({
-        name: patient.name || "",
-        age: patient.age ?? undefined,
-        gender: patient.gender || "",
-        phone: patient.phone || "",
-        email: patient.email || "",
-        notes: patient.notes || "",
-        status: (patient.status as "ACTIVE" | "INACTIVE") || "ACTIVE",
-      });
-      setError(null);
+    if (isOpen && patient) {
+      const isNewlyOpened = !prevOpenRef.current;
+      const isDifferentPatient = prevPatientIdRef.current !== patient.id;
+
+      if (isNewlyOpened || isDifferentPatient) {
+        setFormData({
+          name: patient.name || "",
+          age: patient.age ?? undefined,
+          gender: patient.gender || "",
+          phone: patient.phone || "",
+          email: patient.email || "",
+          notes: patient.notes || "",
+          status: (patient.status as "ACTIVE" | "INACTIVE") || "ACTIVE",
+        });
+        setError(null);
+      }
     }
-  }, [patient]);
+    prevOpenRef.current = isOpen;
+    prevPatientIdRef.current = patient?.id ?? null;
+  }, [isOpen, patient?.id]);
 
   if (!isOpen || !patient) return null;
 

@@ -29,6 +29,7 @@ import {
 } from "@/data/rehabService";
 import type { Patient, PatientAssignment, Session } from "@/types/rehab";
 import { formatDateTime } from "@/lib/format";
+import { Logo } from "@/components/common/Logo";
 
 export const Route = createFileRoute("/patient")({
   head: () => ({
@@ -656,13 +657,7 @@ function PatientPortal() {
             >
               <ArrowLeft className="size-5" />
             </Link>
-            <div>
-              <h1 className="text-xl font-bold text-emerald-600 dark:text-emerald-400 tracking-tight flex items-center gap-2">
-                <Activity className="size-5" />
-                Patient Portal
-              </h1>
-              <p className="text-xs text-muted-foreground">Select your profile to begin rehabilitation</p>
-            </div>
+            <Logo variant="horizontal" size="sm" subtitle="Patient Portal • Select Profile" />
           </div>
         </header>
 
@@ -781,15 +776,11 @@ function PatientPortal() {
             >
               <ArrowLeft className="size-5" />
             </button>
-            <div>
-              <h1 className="text-xl font-bold text-emerald-600 dark:text-emerald-400 tracking-tight flex items-center gap-2">
-                <Activity className="size-5" />
-                Patient Portal
-              </h1>
-              <p className="text-xs text-muted-foreground">
-                Rehabilitation plan for <strong className="text-foreground">{selectedPatient.name}</strong> ({selectedPatient.id})
-              </p>
-            </div>
+            <Logo
+              variant="horizontal"
+              size="sm"
+              subtitle={`Patient Portal • ${selectedPatient.name} (${selectedPatient.id})`}
+            />
           </div>
 
           <button
@@ -1034,15 +1025,11 @@ function PatientPortal() {
           >
             <ArrowLeft className="size-5" />
           </button>
-          <div>
-            <h1 className="text-xl font-bold text-emerald-600 dark:text-emerald-400 tracking-tight flex items-center gap-2">
-              <Activity className="size-5" />
-              Patient Portal
-            </h1>
-            <p className="text-xs text-muted-foreground">
-              {selectedPatient.name} • {selectedAssignment.exercise_name || selectedAssignment.exercise_id}
-            </p>
-          </div>
+          <Logo
+            variant="horizontal"
+            size="sm"
+            subtitle={`${selectedPatient.name} • ${selectedAssignment.exercise_name || selectedAssignment.exercise_id}`}
+          />
         </div>
 
         {sessionStatus === "active" && (

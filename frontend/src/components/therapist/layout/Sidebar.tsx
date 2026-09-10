@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Logo } from "@/components/common/Logo";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard },
@@ -48,14 +49,8 @@ export function Sidebar({ active, onSelect, onClose }: SidebarProps) {
         </button>
       ) : null}
 
-      <div className="flex items-center gap-3 px-6 py-6">
-        <div className="flex size-10 items-center justify-center rounded-xl bg-sidebar-accent border border-sidebar-border/30">
-          <Activity className="size-5 text-primary" strokeWidth={2.5} />
-        </div>
-        <div>
-          <p className="text-lg font-bold text-sidebar-accent-foreground tracking-tight">RehabTwin</p>
-          <p className="text-xs text-sidebar-foreground/50">Therapist Dashboard</p>
-        </div>
+      <div className="px-6 py-6 border-b border-sidebar-border/30">
+        <Logo variant="horizontal" size="md" inverted subtitle="Therapist Dashboard" />
       </div>
 
       <nav className="flex flex-col gap-1 px-4 mt-2">

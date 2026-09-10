@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, Sliders, AlertCircle } from "lucide-react";
 import { updateAssignment } from "@/data/rehabService";
 import type { AssignmentUpdatePayload, PatientAssignment } from "@/types/rehab";
@@ -26,18 +26,29 @@ export function EditAssignmentModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Track previous open state and assignment ID to avoid resetting form on background data polling
+  const prevOpenRef = useRef(false);
+  const prevAssignmentIdRef = useRef<number | null>(null);
+
   useEffect(() => {
-    if (assignment) {
-      setFormData({
-        target_rom: assignment.target_rom ?? undefined,
-        target_repetitions: assignment.target_repetitions ?? undefined,
-        sessions_per_day: assignment.sessions_per_day ?? 1,
-        notes: assignment.notes || "",
-        active: assignment.active,
-      });
-      setError(null);
+    if (isOpen && assignment) {
+      const isNewlyOpened = !prevOpenRef.current;
+      const isDifferentAssignment = prevAssignmentIdRef.current !== assignment.id;
+
+      if (isNewlyOpened || isDifferentAssignment) {
+        setFormData({
+          target_rom: assignment.target_rom ?? undefined,
+          target_repetitions: assignment.target_repetitions ?? undefined,
+          sessions_per_day: assignment.sessions_per_day ?? 1,
+          notes: assignment.notes || "",
+          active: assignment.active,
+        });
+        setError(null);
+      }
     }
-  }, [assignment]);
+    prevOpenRef.current = isOpen;
+    prevAssignmentIdRef.current = assignment?.id ?? null;
+  }, [isOpen, assignment?.id]);
 
   if (!isOpen || !assignment) return null;
 
