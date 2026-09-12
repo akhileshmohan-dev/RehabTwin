@@ -2,8 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Activity,
   ArrowRight,
+  Crosshair,
+  ScanLine,
+  ShieldCheck,
   Stethoscope,
   User,
+  Waves,
 } from "lucide-react";
 import { ScrollReveal } from "@/components/animations/ScrollReveal";
 import { Logo } from "@/components/common/Logo";
@@ -11,110 +15,118 @@ import { Logo } from "@/components/common/Logo";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "RehabTwin — Portal Hub" },
+      { title: "RehabTwin — Motion Intelligence" },
       {
         name: "description",
         content:
-          "Select your portal: Therapist Dashboard or Patient rehabilitation progress tracking.",
+          "RehabTwin brings motion capture, clinical insight, and your digital body model into one rehabilitation platform.",
       },
     ],
   }),
   component: PortalHub,
 });
 
-function PortalHub() {
-
+function BodyTwin() {
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12 overflow-x-hidden font-sans">
-      {/* Decorative Radial Background Gradients */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--color-primary-soft),transparent_50%)] opacity-70 pointer-events-none" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,var(--color-secondary),transparent_50%)] opacity-30 pointer-events-none" />
+    <div className="twin-stage" aria-label="Illustration of a digital rehabilitation body model">
+      <div className="twin-orbit twin-orbit-one" />
+      <div className="twin-orbit twin-orbit-two" />
+      <div className="twin-grid" />
+      <div className="twin-scanline" />
+      <div className="twin-model" aria-hidden="true">
+        <span className="twin-head" />
+        <span className="twin-neck" />
+        <span className="twin-torso" />
+        <span className="twin-arm twin-arm-left" />
+        <span className="twin-arm twin-arm-right" />
+        <span className="twin-leg twin-leg-left" />
+        <span className="twin-leg twin-leg-right" />
+        <i className="twin-joint twin-joint-shoulder-left" />
+        <i className="twin-joint twin-joint-shoulder-right" />
+        <i className="twin-joint twin-joint-elbow-left" />
+        <i className="twin-joint twin-joint-elbow-right" />
+        <i className="twin-joint twin-joint-knee-left" />
+        <i className="twin-joint twin-joint-knee-right" />
+      </div>
+      <div className="twin-reading twin-reading-top"><span>SHOULDER</span><strong>142°</strong></div>
+      <div className="twin-reading twin-reading-side"><span>SYNC</span><strong>98.4%</strong></div>
+      <div className="twin-status"><span className="twin-status-dot" /> LIVE MOTION CAPTURE</div>
+    </div>
+  );
+}
 
-      {/* Main Container */}
-      <div className="z-10 w-full max-w-4xl text-center space-y-12">
-        {/* Header */}
-        <ScrollReveal className="space-y-6 flex flex-col items-center" delay={0}>
-          <Logo variant="stacked" size="xl" className="transform hover:scale-105 transition-transform duration-300" />
-          
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary-soft px-4 py-1.5 text-sm font-semibold text-primary">
-            <Activity className="size-4 animate-pulse" />
-            <span>Next-Gen Physical Rehabilitation & Digital Twin</span>
+function PortalHub() {
+  return (
+    <main className="twin-home min-h-screen overflow-hidden px-5 py-6 sm:px-8 lg:px-12">
+      <div className="twin-noise" />
+      <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between">
+        <Logo variant="horizontal" size="md" />
+        <div className="hidden items-center gap-7 text-sm text-slate-400 md:flex">
+          <span>Motion intelligence</span>
+          <span>Clinical workspace</span>
+          <span className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1.5 font-semibold text-cyan-100">System online</span>
+        </div>
+      </nav>
+
+      <section className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 pb-12 pt-14 lg:grid-cols-[1.05fr_0.95fr] lg:py-20">
+        <ScrollReveal className="max-w-2xl" delay={0}>
+          <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1.5 text-xs font-bold tracking-[0.16em] text-cyan-100">
+            <ScanLine className="size-3.5" /> DIGITAL REHABILITATION TWIN
           </div>
-          
-          <p className="mx-auto max-w-2xl text-lg text-muted-foreground sm:text-xl">
-            A comprehensive clinical platform for therapists and patients. Monitor Range of Motion, track bio-feedback sessions, and optimize recovery paths.
+          <h1 className="text-5xl font-extrabold leading-[0.96] tracking-[-0.055em] text-white sm:text-6xl lg:text-7xl">
+            See recovery in<br />
+            <span className="twin-gradient-text">another dimension.</span>
+          </h1>
+          <p className="mt-7 max-w-xl text-base leading-7 text-slate-300 sm:text-lg">
+            RehabTwin turns each movement into a living clinical model—bringing pose tracking, range-of-motion analysis, and care decisions into one precise workspace.
           </p>
+          <div className="mt-9 flex flex-wrap gap-3 text-sm">
+            <span className="twin-feature"><Crosshair className="size-4" /> Kinematic tracking</span>
+            <span className="twin-feature"><Waves className="size-4" /> Real-time feedback</span>
+            <span className="twin-feature"><ShieldCheck className="size-4" /> Clinical oversight</span>
+          </div>
         </ScrollReveal>
 
-        {/* Portal Grid */}
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Therapist Portal Card */}
-          <ScrollReveal className="w-full" delay={100}>
-            <Link
-              to="/therapist"
-              className="group relative flex h-full flex-col justify-between rounded-3xl border border-border bg-card p-8 text-left shadow-card hover:border-primary/40 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
-            >
-              <div className="absolute top-4 right-4 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                Active Portal
-              </div>
+        <ScrollReveal className="w-full" delay={140}>
+          <BodyTwin />
+        </ScrollReveal>
+      </section>
 
-              <div className="space-y-4">
-                <div className="flex size-14 items-center justify-center rounded-2xl bg-primary-soft border border-primary/10 text-primary group-hover:scale-110 transition-transform duration-300">
-                  <Stethoscope className="size-7" />
-                </div>
-
-                <div className="space-y-2">
-                  <h2 className="text-2xl font-bold text-foreground">Therapist Portal</h2>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Access the clinician dashboard to review patient recovery scores, graph ROM (Range of Motion) progress, analyze latest bio-feedback session values, and register new patients.
-                  </p>
-                </div>
+      <section className="relative z-10 mx-auto max-w-7xl pb-8">
+        <div className="grid gap-4 md:grid-cols-2">
+          <ScrollReveal className="w-full" delay={200}>
+            <Link to="/therapist" className="twin-portal-card twin-portal-therapist group">
+              <div className="flex items-start justify-between gap-4">
+                <div className="twin-icon"><Stethoscope className="size-6" /></div>
+                <span className="twin-card-label">CLINICIAN VIEW</span>
               </div>
-
-              <div className="mt-8 flex items-center justify-between text-sm font-bold text-primary">
-                <span>Enter Therapist View</span>
-                <ArrowRight className="size-4 transform group-hover:translate-x-1.5 transition-transform" />
+              <div className="mt-10">
+                <h2>Build the recovery picture.</h2>
+                <p>Review patient movement data, compare sessions, and make confident care decisions from one command center.</p>
               </div>
+              <div className="twin-card-action">Open therapist workspace <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" /></div>
             </Link>
           </ScrollReveal>
 
-          {/* Patient Portal Card */}
-          <ScrollReveal className="w-full" delay={200}>
-            <Link
-              to="/patient"
-              search={{ patientId: undefined }}
-              className="group relative flex h-full flex-col justify-between rounded-3xl border border-border bg-card p-8 text-left shadow-card hover:border-emerald-600/30 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
-            >
-              <div className="absolute top-4 right-4 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                Active Portal
+          <ScrollReveal className="w-full" delay={280}>
+            <Link to="/patient" search={{ patientId: undefined }} className="twin-portal-card twin-portal-patient group">
+              <div className="flex items-start justify-between gap-4">
+                <div className="twin-icon twin-icon-lilac"><User className="size-6" /></div>
+                <span className="twin-card-label">PATIENT VIEW</span>
               </div>
-
-              <div className="space-y-4">
-                <div className="flex size-14 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform duration-300">
-                  <User className="size-7" />
-                </div>
-
-                <div className="space-y-2">
-                  <h2 className="text-2xl font-bold text-foreground">Patient Portal</h2>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Perform assigned clinical exercises, record bio-feedback metrics using sensor twins, track joint angles, and consult personalized therapy routines.
-                  </p>
-                </div>
+              <div className="mt-10">
+                <h2>Move with clear guidance.</h2>
+                <p>Follow your prescribed program, view live form feedback, and watch progress take shape over time.</p>
               </div>
-
-              <div className="mt-8 flex items-center justify-between text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                <span>Enter Patient View</span>
-                <ArrowRight className="size-4 transform group-hover:translate-x-1.5 transition-transform" />
-              </div>
+              <div className="twin-card-action">Start your session <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" /></div>
             </Link>
           </ScrollReveal>
         </div>
-
-        {/* Footer */}
-        <ScrollReveal className="text-xs text-muted-foreground pt-6 border-t border-border/40" delay={300}>
-          <p>RehabTwin Project Hub © 2026 · Group Mini Project</p>
-        </ScrollReveal>
-      </div>
-    </div>
+        <footer className="mt-8 flex items-center justify-between border-t border-white/10 pt-5 text-xs text-slate-500">
+          <span>REHABTWIN / MOTION INTELLIGENCE</span>
+          <span className="flex items-center gap-1.5"><Activity className="size-3 text-cyan-300" /> Secure clinical workspace</span>
+        </footer>
+      </section>
+    </main>
   );
 }
