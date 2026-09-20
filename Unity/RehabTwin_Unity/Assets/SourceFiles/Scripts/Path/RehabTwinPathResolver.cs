@@ -5,7 +5,7 @@ using UnityEngine;
 public static class RehabTwinPathResolver
 {
     // ---------------------------------------------------------------------
-    // Unity Project
+    // Unity Project / Runtime Root
     // ---------------------------------------------------------------------
 
     public static string GetUnityProjectRoot()
@@ -25,44 +25,148 @@ public static class RehabTwinPathResolver
         return assetsDirectory.Parent.FullName;
     }
 
-    // ---------------------------------------------------------------------
-    // Common Parent
-    // ---------------------------------------------------------------------
-
-    public static string GetCommonParent()
+    public static string GetRuntimeRoot()
     {
-        DirectoryInfo unityProjectDirectory =
-            new DirectoryInfo(
-                GetUnityProjectRoot()
+        // In a built Unity application:
+        //
+        // Runtime/
+        // ├── RehabTwin.exe
+        // └── RehabTwin_Data/
+        //
+        // Application.dataPath points to RehabTwin_Data.
+        //
+        // In the Unity Editor, Application.dataPath points to:
+        // Unity/RehabTwin_Unity/Assets
+        //
+        // We resolve the actual RehabTwin Python/backend root
+        // by searching upward for the expected project structure.
+
+        string unityProjectRoot =
+            GetUnityProjectRoot();
+
+        string developmentRoot =
+            FindDevelopmentRoot(
+                unityProjectRoot
             );
 
-        if (unityProjectDirectory.Parent == null)
+        if (!string.IsNullOrEmpty(
+                developmentRoot))
+        {
+            return developmentRoot;
+        }
+
+        // For a future standalone build, the runtime root
+        // is the directory containing the executable.
+        DirectoryInfo dataDirectory =
+            new DirectoryInfo(
+                Application.dataPath
+            );
+
+        if (dataDirectory.Parent == null)
         {
             throw new InvalidOperationException(
-                "Could not determine common RehabTwin parent."
+                "Could not determine Unity runtime root."
             );
         }
 
-        return unityProjectDirectory.Parent.FullName;
+        return dataDirectory.Parent.FullName;
     }
 
     // ---------------------------------------------------------------------
-    // Python RehabTwin Root
+    // Development Root Detection
+    // ---------------------------------------------------------------------
+
+    private static string FindDevelopmentRoot(
+        string startDirectory
+    )
+    {
+        DirectoryInfo current =
+            new DirectoryInfo(
+                startDirectory
+            );
+
+        while (current != null)
+        {
+            string requirementsPath =
+                Path.Combine(
+                    current.FullName,
+                    "requirements.txt"
+                );
+
+            string rehabilitationDirectory =
+                Path.Combine(
+                    current.FullName,
+                    "rehabilitation"
+                );
+
+            string exercisesDirectory =
+                Path.Combine(
+                    current.FullName,
+                    "exercises"
+                );
+
+            string dataDirectory =
+                Path.Combine(
+                    current.FullName,
+                    "data"
+                );
+
+            if (
+                File.Exists(requirementsPath) &&
+                Directory.Exists(rehabilitationDirectory) &&
+                Directory.Exists(exercisesDirectory) &&
+                Directory.Exists(dataDirectory)
+            )
+            {
+                return current.FullName;
+            }
+
+            current =
+                current.Parent;
+        }
+
+        return null;
+    }
+
+    // ---------------------------------------------------------------------
+    // Python / Backend Root
     // ---------------------------------------------------------------------
 
     public static string GetPythonRoot()
     {
-        string commonParent =
-            GetCommonParent();
+        string runtimeRoot =
+            GetRuntimeRoot();
 
-        string pythonRoot =
+        // Development layout:
+        //
+        // RehabTwin(V4)/
+        // ├── rehabilitation/
+        // ├── exercises/
+        // ├── data/
+        // └── Unity/
+        //
+        // Deployment layout can later use:
+        //
+        // Runtime/
+        // ├── RehabTwin.exe
+        // └── backend/
+        //
+        string backendDirectory =
             Path.Combine(
-                commonParent,
-                "RehabTwin(V4)"
+                runtimeRoot,
+                "backend"
             );
 
+        if (Directory.Exists(
+                backendDirectory))
+        {
+            return Path.GetFullPath(
+                backendDirectory
+            );
+        }
+
         return Path.GetFullPath(
-            pythonRoot
+            runtimeRoot
         );
     }
 
@@ -75,6 +179,26 @@ public static class RehabTwinPathResolver
         return Path.Combine(
             GetPythonRoot(),
             "data"
+        );
+    }
+
+    // ---------------------------------------------------------------------
+    // Exercise Configuration
+    // ---------------------------------------------------------------------
+
+    public static string GetExerciseRoot()
+    {
+        return Path.Combine(
+            GetPythonRoot(),
+            "exercises"
+        );
+    }
+
+    public static string GetExerciseConfigPath()
+    {
+        return Path.Combine(
+            GetExerciseRoot(),
+            "exercises.csv"
         );
     }
 
@@ -204,7 +328,7 @@ public static class RehabTwinPathResolver
     }
 
     // ---------------------------------------------------------------------
-    // Validation
+    // Structure Validation
     // ---------------------------------------------------------------------
 
     public static bool ValidateStructure(
@@ -232,7 +356,7 @@ public static class RehabTwinPathResolver
                 pythonRoot))
         {
             error =
-                "RehabTwin Python root was not found:\n" +
+                "RehabTwin backend root was not found:\n" +
                 pythonRoot;
 
             return false;

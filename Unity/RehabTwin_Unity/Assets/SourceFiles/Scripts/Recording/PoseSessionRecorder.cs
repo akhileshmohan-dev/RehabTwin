@@ -61,6 +61,9 @@ public class PoseSessionRecorder : MonoBehaviour
 
     private string currentFilePath = "";
 
+    // Tracks whether the first actual valid pose has been recorded.
+    private bool hasRecordedFirstFrame = false;
+
     // ---------------------------------------------------------------------
     // Unity
     // ---------------------------------------------------------------------
@@ -187,10 +190,13 @@ public class PoseSessionRecorder : MonoBehaviour
                 "yyyy-MM-dd_HH-mm-ss"
             );
 
-        recordingStartTime =
-            Time.time;
+        // The actual recording clock starts when
+        // the first valid pose is captured.
+        recordingStartTime = 0f;
 
         lastRecordedTime = -1f;
+
+        hasRecordedFirstFrame = false;
 
         currentFilePath =
             CreateSessionPath(
@@ -218,6 +224,11 @@ public class PoseSessionRecorder : MonoBehaviour
 
         Debug.Log(
             "[PoseRecorder] " +
+            "Waiting for first valid pose..."
+        );
+
+        Debug.Log(
+            "[PoseRecorder] " +
             "Output: " +
             currentFilePath
         );
@@ -241,9 +252,31 @@ public class PoseSessionRecorder : MonoBehaviour
         if (pose.landmarks == null)
             return;
 
-        float currentTime =
-            Time.time -
-            recordingStartTime;
+        float currentTime;
+
+        // -------------------------------------------------------------
+        // First valid pose
+        // -------------------------------------------------------------
+
+        if (!hasRecordedFirstFrame)
+        {
+            recordingStartTime =
+                Time.time;
+
+            currentTime = 0f;
+
+            hasRecordedFirstFrame = true;
+        }
+        else
+        {
+            currentTime =
+                Time.time -
+                recordingStartTime;
+        }
+
+        // -------------------------------------------------------------
+        // Frame-rate limiting
+        // -------------------------------------------------------------
 
         float minimumInterval =
             1f /
@@ -258,11 +291,19 @@ public class PoseSessionRecorder : MonoBehaviour
             return;
         }
 
+        // -------------------------------------------------------------
+        // Clone pose
+        // -------------------------------------------------------------
+
         PoseFrame clonedPose =
             ClonePose(pose);
 
         if (clonedPose == null)
             return;
+
+        // -------------------------------------------------------------
+        // Create recorded frame
+        // -------------------------------------------------------------
 
         RecordedPoseFrame frame =
             new RecordedPoseFrame();
@@ -309,12 +350,29 @@ public class PoseSessionRecorder : MonoBehaviour
             return;
         }
 
-        currentSession.duration =
-            Time.time -
-            recordingStartTime;
+        // -------------------------------------------------------------
+        // No valid pose was ever recorded
+        // -------------------------------------------------------------
 
-        currentSession.frameCount =
-            currentSession.frames.Count;
+        if (!hasRecordedFirstFrame)
+        {
+            currentSession.duration = 0f;
+            currentSession.frameCount = 0;
+
+            Debug.LogWarning(
+                "[PoseRecorder] " +
+                "No valid pose frames were recorded."
+            );
+        }
+        else
+        {
+            currentSession.duration =
+                Time.time -
+                recordingStartTime;
+
+            currentSession.frameCount =
+                currentSession.frames.Count;
+        }
 
         SaveSession();
 
@@ -536,7 +594,8 @@ public class PoseSessionRecorder : MonoBehaviour
     {
         if (
             !recording ||
-            currentSession == null
+            currentSession == null ||
+            !hasRecordedFirstFrame
         )
         {
             return 0f;
