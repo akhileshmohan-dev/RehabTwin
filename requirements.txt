@@ -19,5 +19,7 @@ six==1.17.0
 sounddevice==0.5.5
 SQLAlchemy>=2.0,<3.0
 pytest>=8.0,<9.0
+scikit-learn>=1.5,<2.0
+joblib>=1.4,<2.0
 # PostgreSQL migration/deployment (optional for now):
 # psycopg[binary]>=3.2,<4.0
