@@ -5,4 +5,3 @@ __pycache__/
 .env
 rehabilitation/elbow_motion.csv
 data/*.db
-rehabilitation/movement_quality_model.joblib
