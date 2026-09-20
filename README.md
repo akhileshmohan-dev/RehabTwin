@@ -1,66 +1,64 @@
-# RehabTwin — Pose Estimation, Rehabilitation Analysis & Digital Thread
+# RehabTwin — Pose Estimation & Motion Acquisition
 
-RehabTwin captures webcam pose data with MediaPipe, calculates joint angles, performs rehabilitation analysis, and now records each rehabilitation session as a persistent **Digital Thread**.
-
-## Pipeline
-
-```text
-Camera
-  ↓
-MediaPipe Pose
-  ↓
-Landmarks
-  ↓
-Joint Angles
-  ↓
-Filtering + Smoothing
-  ↓
-Repetition Counting + ROM
-  ↓
-Digital Thread
-  ├── Session
-  ├── Frame landmarks
-  ├── Joint-angle measurements
-  └── Session result
-  ↓
-SQLite (now) → PostgreSQL (later)
-```
+This module captures webcam video, detects body pose landmarks using MediaPipe,
+and calculates joint angles (elbow, shoulder — both sides) in real time.
 
 ## Setup
+1. Create venv: `py -3.12 -m venv venv`
+2. Activate: `venv\Scripts\Activate.ps1`
+3. Install dependencies: `pip install -r requirements.txt`
 
-```powershell
-py -3.12 -m venv venv
-venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
+## Files
+- `webcam_test.py` — basic webcam capture test
+- `pose_test.py` — main script: runs pose detection + displays joint angles live
+- `landmark_extractor.py` — converts MediaPipe output into structured landmark dict
+- `angle_utils.py` — calculates joint angle from 3 landmark points
 
-The project uses **SQLAlchemy** as the persistence abstraction. SQLite is the default local database. PostgreSQL is intentionally not required yet.
+## Run
+python pose_test.py
 
-## Run live rehabilitation analysis
+## Output format
+extract_landmarks() returns a dict like:
+{
+  "LEFT_SHOULDER": {"x": ..., "y": ..., "z": ..., "visibility": ...},
+  ...
+}
+
+calculate_angle(a, b, c) returns the angle in degrees at point b.
+
+---
+
+# Rehabilitation Analysis
+
+The rehabilitation analysis module processes pose-estimation data and performs basic rehabilitation movement analysis.
+
+It currently supports:
+
+- Angle filtering
+- Angle smoothing
+- Elbow repetition counting
+- Range of Motion (ROM) calculation
+- CSV session logging
+
+## Run
 
 From the project root:
 
 ```powershell
-python rehabilitation\live_analysis.py --patient-id P001
-```
+python rehabilitation\live_analysis.py
+````
 
-The program will:
+### Webcam Setup
 
-1. Start a Digital Thread session.
-2. Run the existing MediaPipe + elbow-analysis pipeline.
-3. Persist each analyzed frame's landmarks, angle data, and movement state.
-4. Save the final repetition and ROM result.
-5. Export a complete session JSON trace.
+For the current elbow-flexion prototype:
 
-Default outputs:
-
-```text
-data\rehabtwin_thread.db
-
-data\exports\<SESSION_ID>.json
-
-rehabilitation\elbow_motion.csv
-```
+1. Stand roughly sideways to the webcam.
+2. Keep your shoulder, elbow, and wrist visible.
+3. Start with your arm extended.
+4. Slowly bend your elbow.
+5. Slowly extend it again.
+6. Repeat several times.
+7. Press `q` to stop.
 
 The live window displays:
 
@@ -70,104 +68,47 @@ Reps: <count>
 ROM: <range>
 ```
 
-## Digital Thread API
-
-The rehabilitation pipeline only talks to this interface:
-
-```python
-from digital_thread import DigitalThread
-
-thread = DigitalThread()
-session_id = thread.start_session("P001", "elbow_flexion")
-
-thread.record_frame(
-    frame_id=0,
-    landmarks={...},
-    joint_angles={
-        "left_elbow_raw": 151.2,
-        "left_elbow_smoothed": 149.8,
-    },
-    phase="EXTENDED",
-)
-
-thread.record_result(
-    repetitions=12,
-    rom_min=48.0,
-    rom_max=142.0,
-    rom_average=94.0,
-    performance_score=None,
-    feedback="Session recorded successfully.",
-)
-
-thread.end_session()
-```
-
-This keeps the pose/analysis code database-agnostic.
-
-## Database structure
+Session data is saved to:
 
 ```text
-sessions
-    │
-    ├── frames
-    │
-    └── results
+rehabilitation\elbow_motion.csv
 ```
 
-Each frame belongs to exactly one session, and each result belongs to exactly one session.
+The CSV is generated runtime data and is excluded from Git.
 
-## PostgreSQL migration path
+## Run Tests
 
-SQLite is the local default. Later, PostgreSQL can be selected through `DATABASE_URL` without changing the Digital Thread API:
+From the project root:
 
 ```powershell
-$env:DATABASE_URL="postgresql+psycopg://USER:PASSWORD@HOST:5432/rehabtwin"
-python rehabilitation\live_analysis.py --patient-id P001
+python -m pytest tests -v
 ```
 
-Install the PostgreSQL driver when the migration phase begins:
+The current test suite should show:
 
-```powershell
-pip install "psycopg[binary]>=3.2,<4"
+```text
+34 passed
 ```
 
-To migrate an existing SQLite database:
+## Rehabilitation Pipeline
 
-```powershell
-python scripts\migrate_sqlite_to_target.py `
-  --source data\rehabtwin_thread.db `
-  --target "postgresql+psycopg://USER:PASSWORD@HOST:5432/rehabtwin"
+```text
+Pose Estimation
+      ↓
+PoseFrame
+      ↓
+Angle Filtering
+      ↓
+Angle Smoothing
+      ↓
+Repetition Counting
+      ↓
+ROM Calculation
+      ↓
+Live Display + CSV
 ```
 
-The migration script creates the target schema from the same SQLAlchemy models and copies sessions, frames, and results.
-
-## Existing pose-estimation modules
-
-- `pose_estimation/webcam_test.py` — webcam capture test
-- `pose_estimation/pose_test.py` — pose detection and display
-- `pose_estimation/landmark_extractor.py` — structured landmarks
-- `pose_estimation/angle_utils.py` — joint-angle calculation
-
-## Rehabilitation modules
-
-- `rehabilitation/data_filter.py` — visibility/validity filtering
-- `rehabilitation/smoothing.py` — angle smoothing
-- `rehabilitation/repetition_counter.py` — elbow repetition state machine
-- `rehabilitation/rom_calculator.py` — ROM calculation
-- `rehabilitation/analysis_pipeline.py` — analysis orchestration
-- `rehabilitation/live_analysis.py` — webcam session + Digital Thread integration
-
-## Tests
-
-Run the non-hardware test suite from the project root:
-
-```powershell
-python -m pytest tests/test_analysis_pipeline.py tests/test_data_filter.py tests/test_exercises.py tests/test_repetition_counter.py tests/test_rom_calculator.py tests/test_smoothing.py tests/test_digital_thread.py -v
-```
-
-Webcam-dependent test scripts are intentionally not included in the headless test command.
-
-## Current elbow logic
+## Current Elbow Repetition Logic
 
 A complete repetition is:
 
@@ -175,7 +116,7 @@ A complete repetition is:
 EXTENDED → FLEXED → EXTENDED
 ```
 
-Prototype thresholds:
+Current prototype thresholds:
 
 ```text
 Flexed:    100°
@@ -183,3 +124,4 @@ Extended:  160°
 ```
 
 These thresholds are prototype parameters and are not clinically validated.
+
