@@ -1,0 +1,27 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
+# Environment / secrets
+.env
+
+# Runtime rehabilitation data
+data/patients/*
+data/exports/*
+*.db
+*.sqlite
+*.sqlite3
+
+# Generated analysis output
+rehabilitation/elbow_motion.csv
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
