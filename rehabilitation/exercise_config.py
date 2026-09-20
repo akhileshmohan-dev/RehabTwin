@@ -1,3 +1,12 @@
+"""For each one, it defines:
+
+flexed threshold
+extended threshold
+left-side angle
+right-side angle
+required landmarks"""
+
+
 EXERCISE_CONFIG = {
     "elbow_flexion": {
         "flexed_threshold": 100,

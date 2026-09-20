@@ -6,6 +6,8 @@ Analysis module (Member 2).
 
 This module has no dependency on any specific exercise — it just packages
 whatever angles/landmarks are passed in.
+
+PoseFrame acts as the interface between pose estimation and rehabilitation analysis.
 """
 
 import time

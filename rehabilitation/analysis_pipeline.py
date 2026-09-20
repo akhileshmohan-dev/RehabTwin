@@ -5,7 +5,7 @@ from rehabilitation.rom_calculator import calculate_rom
 from rehabilitation.exercise_config import EXERCISE_CONFIG
 
 
-class RehabilitationAnalysisPipeline:
+class RehabilitationAnalysisPipeline: #this class imports all the other features like rom,angle history, smoothing, repetition counter and data filter to create a pipeline for rehabilitation analysis 
 
     def __init__(
         self,
