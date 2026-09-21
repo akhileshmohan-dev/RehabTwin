@@ -1,8 +1,10 @@
 from rehabilitation.session_assessment import SessionAssessment
 
 
-def test_session_assessment_returns_quality():
-    assessment = SessionAssessment()
+def test_session_assessment_returns_quality(trained_model_path):
+    assessment = SessionAssessment(
+        model_path=trained_model_path
+    )
 
     result = assessment.assess(
         exercise="elbow_flexion",
