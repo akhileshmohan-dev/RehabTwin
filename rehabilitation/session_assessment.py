@@ -8,8 +8,9 @@ class SessionAssessment:
     rehabilitation session.
     """
 
-    def __init__(self):
-        self.predictor = MovementQualityPredictor()
+    def __init__(self, predictor=None, model_path=None):
+        self.predictor = predictor
+        self.model_path = model_path
 
     def assess(
         self,
@@ -43,6 +44,14 @@ class SessionAssessment:
                 "features": features,
                 "movement_quality": None,
             }
+
+        if self.predictor is None:
+            if self.model_path is None:
+                self.predictor = MovementQualityPredictor()
+            else:
+                self.predictor = MovementQualityPredictor(
+                    model_path=self.model_path
+                )
 
         movement_quality = self.predictor.predict(
             features

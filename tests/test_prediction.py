@@ -1,8 +1,8 @@
 from rehabilitation.prediction import MovementQualityPredictor
 
 
-def test_prediction_returns_valid_class():
-    predictor = MovementQualityPredictor()
+def test_prediction_returns_valid_class(trained_model_path):
+    predictor = MovementQualityPredictor(trained_model_path)
 
     features = {
         "min_angle": 32,
