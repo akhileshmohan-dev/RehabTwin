@@ -1,12 +1,14 @@
-import { Activity, CheckCircle2 } from "lucide-react";
+import { Activity, CheckCircle2, Play } from "lucide-react";
 import type { Session } from "@/types/rehab";
 import { formatDateTime } from "@/lib/format";
+import { preloadSessionReplay } from "@/components/therapist/replay/preload";
 
 interface LatestSessionProps {
   session?: Session | undefined;
+  onViewReplay?: (session: Session) => void;
 }
 
-export function LatestSession({ session }: LatestSessionProps) {
+export function LatestSession({ session, onViewReplay }: LatestSessionProps) {
   if (!session) {
     return (
       <section className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground shadow-card card-interactive text-center">
@@ -130,6 +132,21 @@ export function LatestSession({ session }: LatestSessionProps) {
             </span>
           </div>
         </div>
+      </div>
+
+      <div className="mt-4 flex items-center justify-end">
+        <button
+          type="button"
+          disabled={!isCompleted}
+          title={isCompleted ? "Open 3D replay" : "Only completed sessions can be replayed"}
+          onMouseEnter={preloadSessionReplay}
+          onFocus={preloadSessionReplay}
+          onClick={() => onViewReplay?.(session)}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          <Play className="size-3.5 fill-current" />
+          View 3D Replay
+        </button>
       </div>
 
       {hasResult && session.feedback && (

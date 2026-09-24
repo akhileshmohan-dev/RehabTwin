@@ -1,7 +1,15 @@
+import { Play } from "lucide-react";
 import type { Session } from "@/types/rehab";
 import { formatDateTime } from "@/lib/format";
+import { preloadSessionReplay } from "@/components/therapist/replay/preload";
 
-export function RecentSessions({ sessions }: { sessions: Session[] }) {
+export function RecentSessions({
+  sessions,
+  onViewReplay,
+}: {
+  sessions: Session[];
+  onViewReplay?: (session: Session) => void;
+}) {
   // Explicit newest-first: take first 5 sessions directly
   const rows = sessions.slice(0, 5);
 
@@ -25,7 +33,8 @@ export function RecentSessions({ sessions }: { sessions: Session[] }) {
               <th className="py-2 pr-3 font-medium">Status</th>
               <th className="py-2 pr-3 font-medium">Reps</th>
               <th className="py-2 pr-3 font-medium">ROM</th>
-              <th className="py-2 font-medium">Score</th>
+              <th className="py-2 pr-3 font-medium">Score</th>
+              <th className="py-2 font-medium">Replay</th>
             </tr>
           </thead>
           <tbody>
@@ -74,15 +83,29 @@ export function RecentSessions({ sessions }: { sessions: Session[] }) {
                   <td className="py-3 pr-3 text-foreground font-sans text-xs">
                     {isActive || !s.hasResult ? "—" : `${s.rom.toFixed(1)}°`}
                   </td>
-                  <td className="py-3 font-semibold text-foreground font-sans text-xs">
+                  <td className="py-3 pr-3 font-semibold text-foreground font-sans text-xs">
                     {!isActive && s.hasResult && s.score !== null ? `${s.score}%` : "—"}
+                  </td>
+                  <td className="py-3">
+                    <button
+                      type="button"
+                      disabled={!isCompleted}
+                      title={isCompleted ? "Open 3D replay" : "Only completed sessions can be replayed"}
+                      onMouseEnter={preloadSessionReplay}
+                      onFocus={preloadSessionReplay}
+                      onClick={() => onViewReplay?.(s)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                    >
+                      <Play className="size-3 fill-current" />
+                      View 3D
+                    </button>
                   </td>
                 </tr>
               );
             })}
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-8 text-center text-xs text-muted-foreground">
+                <td colSpan={9} className="py-8 text-center text-xs text-muted-foreground">
                   No sessions recorded for this patient.
                 </td>
               </tr>

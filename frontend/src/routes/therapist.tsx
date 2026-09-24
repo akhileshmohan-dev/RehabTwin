@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -27,6 +27,9 @@ import {
   fetchPatientsOverview,
 } from "@/data/rehabService";
 import type { DashboardStats, Patient, Session } from "@/types/rehab";
+
+// Lazy-loaded so the dashboard's first paint never pulls the 3D replay bundle.
+const SessionReplayModal = lazy(() => import("@/components/therapist/replay/SessionReplayModal"));
 
 export const Route = createFileRoute("/therapist")({
   head: () => ({
@@ -102,6 +105,7 @@ export function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
   const [isAddPatientOpen, setIsAddPatientOpen] = useState(false);
+  const [replaySession, setReplaySession] = useState<Session | null>(null);
 
   // Dual-guard race condition protection refs
   const selectedIdRef = useRef(selectedId);
@@ -320,7 +324,7 @@ export function Dashboard() {
                     {isLoading ? (
                       <div className="rounded-2xl border border-border bg-card p-5 animate-shimmer h-[160px]" />
                     ) : (
-                      <LatestSession session={latest} />
+                      <LatestSession session={latest} onViewReplay={setReplaySession} />
                     )}
                   </ScrollReveal>
                 </div>
@@ -335,7 +339,7 @@ export function Dashboard() {
                   <SessionComparison sessions={sessions} />
                 </ScrollReveal>
                 <ScrollReveal className="w-full" delay={350}>
-                  <RecentSessions sessions={sessions} />
+                  <RecentSessions sessions={sessions} onViewReplay={setReplaySession} />
                 </ScrollReveal>
               </div>
             </>
@@ -365,7 +369,7 @@ export function Dashboard() {
                 </ScrollReveal>
 
                 <ScrollReveal className="w-full" delay={150}>
-                  <RecentSessions sessions={sessions} />
+                  <RecentSessions sessions={sessions} onViewReplay={setReplaySession} />
                 </ScrollReveal>
               </div>
             </div>
@@ -375,10 +379,10 @@ export function Dashboard() {
           {nav === "Sessions" && (
             <div className="mt-5 space-y-5">
               <div className="grid gap-5 xl:grid-cols-2">
-                <LatestSession session={latest} />
+                <LatestSession session={latest} onViewReplay={setReplaySession} />
                 <SessionComparison sessions={sessions} />
               </div>
-              <RecentSessions sessions={sessions} />
+              <RecentSessions sessions={sessions} onViewReplay={setReplaySession} />
             </div>
           )}
 
@@ -449,6 +453,16 @@ export function Dashboard() {
             loadData(false);
           }}
         />
+
+        {/* 3D Session Replay Modal (lazy) */}
+        <Suspense fallback={null}>
+          <SessionReplayModal
+            isOpen={replaySession !== null}
+            session={replaySession}
+            patient={patient}
+            onClose={() => setReplaySession(null)}
+          />
+        </Suspense>
 
         <footer className="mt-8 flex flex-wrap justify-end gap-3 text-xs text-muted-foreground border-t border-border/40 pt-4">
           <span>RehabTwin © 2026</span>

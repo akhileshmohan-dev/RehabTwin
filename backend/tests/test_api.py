@@ -251,18 +251,11 @@ class TestRehabService(unittest.TestCase):
         self.client = TestClient(app)
 
     def test_list_exercises(self):
-<<<<<<< HEAD
-        res = self.rehab_service.list_exercises()
-        self.assertEqual(res.total, 4)
-        exercise_ids = [ex.id for ex in res.exercises]
-        for expected in ["elbow_flexion", "shoulder_flexion", "shoulder_abduction", "knee_flexion"]:
-=======
         # User-facing list is driven by exercises/exercises.csv (2 rows).
         res = self.rehab_service.list_exercises()
         self.assertEqual(res.total, 2)
         exercise_ids = [ex.id for ex in res.exercises]
         for expected in ["elbow_flexion", "shoulder_flexion"]:
->>>>>>> 8ca8ed2 (3D model 1st stage)
             self.assertIn(expected, exercise_ids)
 
     def test_get_exercise_details(self):

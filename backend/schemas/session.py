@@ -1,11 +1,7 @@
 """
 Pydantic schemas for session lifecycle management and telemetry.
 """
-<<<<<<< HEAD
-from typing import Any, Dict, Optional
-=======
 from typing import Any, Dict, List, Optional
->>>>>>> 8ca8ed2 (3D model 1st stage)
 from pydantic import BaseModel, Field
 
 
@@ -70,8 +66,6 @@ class RecordFrameResponse(BaseModel):
     message: str = "Frame recorded successfully"
 
 
-<<<<<<< HEAD
-=======
 class SessionFrameData(BaseModel):
     frame_id: int
     t_ms: float = Field(..., description="Milliseconds elapsed since the first stored frame")
@@ -93,7 +87,6 @@ class SessionFramesResponse(BaseModel):
     frames: List[SessionFrameData]
 
 
->>>>>>> 8ca8ed2 (3D model 1st stage)
 class RecordResultRequest(BaseModel):
     repetitions: int = Field(..., ge=0, description="Total repetitions performed")
     rom_min: Optional[float] = Field(None, description="Minimum joint angle recorded")

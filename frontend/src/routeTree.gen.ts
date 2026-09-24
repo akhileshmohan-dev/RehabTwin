@@ -11,10 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PatientRouteImport } from './routes/patient'
-<<<<<<< HEAD
-=======
 import { Route as ReplayDevRouteImport } from './routes/replay-dev'
->>>>>>> 8ca8ed2 (3D model 1st stage)
 import { Route as TherapistRouteImport } from './routes/therapist'
 
 const IndexRoute = IndexRouteImport.update({
@@ -27,14 +24,11 @@ const PatientRoute = PatientRouteImport.update({
   path: '/patient',
   getParentRoute: () => rootRouteImport,
 } as any)
-<<<<<<< HEAD
-=======
 const ReplayDevRoute = ReplayDevRouteImport.update({
   id: '/replay-dev',
   path: '/replay-dev',
   getParentRoute: () => rootRouteImport,
 } as any)
->>>>>>> 8ca8ed2 (3D model 1st stage)
 const TherapistRoute = TherapistRouteImport.update({
   id: '/therapist',
   path: '/therapist',
@@ -44,53 +38,34 @@ const TherapistRoute = TherapistRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/patient': typeof PatientRoute
-<<<<<<< HEAD
-=======
   '/replay-dev': typeof ReplayDevRoute
->>>>>>> 8ca8ed2 (3D model 1st stage)
   '/therapist': typeof TherapistRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/patient': typeof PatientRoute
-<<<<<<< HEAD
-=======
   '/replay-dev': typeof ReplayDevRoute
->>>>>>> 8ca8ed2 (3D model 1st stage)
   '/therapist': typeof TherapistRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/patient': typeof PatientRoute
-<<<<<<< HEAD
-=======
   '/replay-dev': typeof ReplayDevRoute
->>>>>>> 8ca8ed2 (3D model 1st stage)
   '/therapist': typeof TherapistRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-<<<<<<< HEAD
-  fullPaths: '/' | '/patient' | '/therapist'
-  fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/patient' | '/therapist'
-  id: '__root__' | '/' | '/patient' | '/therapist'
-=======
   fullPaths: '/' | '/patient' | '/replay-dev' | '/therapist'
   fileRoutesByTo: FileRoutesByTo
   to: '/' | '/patient' | '/replay-dev' | '/therapist'
   id: '__root__' | '/' | '/patient' | '/replay-dev' | '/therapist'
->>>>>>> 8ca8ed2 (3D model 1st stage)
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PatientRoute: typeof PatientRoute
-<<<<<<< HEAD
-=======
   ReplayDevRoute: typeof ReplayDevRoute
->>>>>>> 8ca8ed2 (3D model 1st stage)
   TherapistRoute: typeof TherapistRoute
 }
 
@@ -110,8 +85,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PatientRouteImport
       parentRoute: typeof rootRouteImport
     }
-<<<<<<< HEAD
-=======
     '/replay-dev': {
       id: '/replay-dev'
       path: '/replay-dev'
@@ -119,7 +92,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReplayDevRouteImport
       parentRoute: typeof rootRouteImport
     }
->>>>>>> 8ca8ed2 (3D model 1st stage)
     '/therapist': {
       id: '/therapist'
       path: '/therapist'
@@ -133,10 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PatientRoute: PatientRoute,
-<<<<<<< HEAD
-=======
   ReplayDevRoute: ReplayDevRoute,
->>>>>>> 8ca8ed2 (3D model 1st stage)
   TherapistRoute: TherapistRoute,
 }
 export const routeTree = rootRouteImport

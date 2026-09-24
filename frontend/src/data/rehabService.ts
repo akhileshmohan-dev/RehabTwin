@@ -14,16 +14,10 @@ import type {
   PatientUpdatePayload,
   AssignmentCreatePayload,
   AssignmentUpdatePayload,
-<<<<<<< HEAD
-} from "@/types/rehab";
-
-export const API_BASE_URL = import.meta.env["VITE_API_BASE_URL"] || "http://127.0.0.1:8000";
-=======
   SessionFramesResponse,
 } from "@/types/rehab";
 
 export const API_BASE_URL = import.meta.env["VITE_API_BASE_URL"] || "http://127.0.0.1:8013";
->>>>>>> 8ca8ed2 (3D model 1st stage)
 
 export function getWebSocketUrl(sessionId: string): string {
   const wsBase = API_BASE_URL.replace(/^http/, "ws");
@@ -374,8 +368,6 @@ export async function startSession(
   return await response.json();
 }
 
-<<<<<<< HEAD
-=======
 export async function fetchSessionFrames(sessionId: string): Promise<SessionFramesResponse> {
   const response = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}/frames`);
   if (!response.ok) {
@@ -384,7 +376,14 @@ export async function fetchSessionFrames(sessionId: string): Promise<SessionFram
   return await response.json();
 }
 
->>>>>>> 8ca8ed2 (3D model 1st stage)
+export async function getSessionFrames(sessionId: string): Promise<SessionFramesResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}/frames`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch frames for ${sessionId}`);
+  }
+  return await response.json();
+}
+
 export async function endSession(sessionId: string) {
   const response = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}/end`, {
     method: "POST",

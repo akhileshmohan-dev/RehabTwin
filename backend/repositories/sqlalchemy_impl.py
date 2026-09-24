@@ -1,8 +1,5 @@
 import json
-<<<<<<< HEAD
-=======
 from datetime import datetime
->>>>>>> 8ca8ed2 (3D model 1st stage)
 from pathlib import Path
 from typing import List, Dict, Optional, Any
 from uuid import uuid4
@@ -388,12 +385,9 @@ class SQLAlchemyTelemetryRepository(ITelemetryRepository):
         landmarks: Dict[str, Any],
         joint_angles: Dict[str, float],
         phase: Optional[str] = None,
-<<<<<<< HEAD
-=======
         timestamp: Optional[datetime] = None,
         image_width: Optional[int] = None,
         image_height: Optional[int] = None,
->>>>>>> 8ca8ed2 (3D model 1st stage)
     ) -> None:
         with self.db.session() as session:
             s = session.get(Session, session_id)
@@ -402,15 +396,6 @@ class SQLAlchemyTelemetryRepository(ITelemetryRepository):
             session.add(Frame(
                 session_id=session_id,
                 frame_id=frame_id,
-<<<<<<< HEAD
-                timestamp=utc_now(),
-                landmarks=landmarks,
-                joint_angles=joint_angles,
-                phase=phase,
-            ))
-            session.commit()
-
-=======
                 timestamp=timestamp or utc_now(),
                 landmarks=landmarks,
                 joint_angles=joint_angles,
@@ -444,7 +429,6 @@ class SQLAlchemyTelemetryRepository(ITelemetryRepository):
                 for f in rows
             ]
 
->>>>>>> 8ca8ed2 (3D model 1st stage)
 
 class SQLAlchemyResultRepository(IResultRepository):
     def __init__(self, db: Database):

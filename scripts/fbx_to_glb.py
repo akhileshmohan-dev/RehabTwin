@@ -24,7 +24,8 @@ import sys
 import bpy
 
 MAX_GLB_BYTES = 15 * 1024 * 1024
-MAX_TEXTURE_DIM = 1024
+# Overridable so a lighter asset can be produced for the browser viewer.
+MAX_TEXTURE_DIM = int(os.getenv("GLB_MAX_TEXTURE_DIM", "1024"))
 
 
 def _script_args():

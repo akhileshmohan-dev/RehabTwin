@@ -126,3 +126,39 @@ Extended:  160°
 
 These thresholds are prototype parameters and are not clinically validated.
 
+---
+
+# Run locally (full stack)
+
+Backend (FastAPI, port 8013):
+
+```powershell
+python -m uvicorn backend.main:app --host 127.0.0.1 --port 8013
+```
+
+Frontend (Vite + TanStack Start, port 8081):
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Open `http://localhost:8081` — therapist dashboard (`/therapist`), patient portal (`/patient`),
+and the 3D replay dev page (`/replay-dev`).
+
+Seed a synthetic completed session (structured telemetry only — no images/video are ever written):
+
+```powershell
+python scripts/seed_demo_session.py --exercise elbow_flexion --side left
+```
+
+Environment variables:
+
+- `ALLOWED_ORIGINS` (backend) — comma-separated CORS origins. Defaults include `localhost`/`127.0.0.1`
+  on ports 3000, 5173, 8080 and 8081; set this to override for other deployments.
+- `TELEMETRY_EVERY_N_VALID` (backend) — persist every Nth valid pose frame; default `1` (every frame).
+- `EXERCISE_CATALOG_PATH` (backend) — path to the exercise CSV; default `exercises/exercises.csv`.
+- `VITE_API_BASE_URL` (frontend) — backend base URL. For local development this is set in
+  `frontend/.env.local` to `http://127.0.0.1:8013` (WebSocket URLs derive from it automatically).
+

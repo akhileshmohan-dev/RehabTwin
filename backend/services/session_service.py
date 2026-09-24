@@ -2,18 +2,12 @@
 Session service orchestrating session lifecycle and telemetry persistence
 via repository interfaces.
 """
-<<<<<<< HEAD
-from typing import Any, Dict, Optional
-import os
-from rehabilitation.exercises import EXERCISE_REGISTRY
-=======
 from typing import Any, Dict, List, Optional
 import csv
 import io
 import os
 from rehabilitation.exercises import EXERCISE_REGISTRY
 from backend.services.exercise_catalog import catalog_row_for_registry_key
->>>>>>> 8ca8ed2 (3D model 1st stage)
 
 from backend.repositories.interfaces import (
     ISessionRepository,
@@ -33,11 +27,8 @@ from backend.schemas.session import (
     RecordResultRequest,
     RecordResultResponse,
     ExportSessionResponse,
-<<<<<<< HEAD
-=======
     SessionFrameData,
     SessionFramesResponse,
->>>>>>> 8ca8ed2 (3D model 1st stage)
 )
 
 
@@ -79,8 +70,6 @@ class SessionNoResultException(Exception):
 
 VALID_SIDES = {"left", "right"}
 
-<<<<<<< HEAD
-=======
 # Exact column order for the single-row CSV export.
 CSV_EXPORT_COLUMNS = [
     "exercise_id",
@@ -98,7 +87,6 @@ CSV_EXPORT_COLUMNS = [
     "performance_score",
 ]
 
->>>>>>> 8ca8ed2 (3D model 1st stage)
 
 def normalize_side(side: Optional[str]) -> str:
     """Normalize and validate exercise side."""
@@ -286,8 +274,6 @@ class SessionService:
             message="Frame recorded successfully."
         )
 
-<<<<<<< HEAD
-=======
     def get_frames(self, session_id: str) -> SessionFramesResponse:
         """
         Return all persisted frames for a session for 3D replay, ordered by frame_id.
@@ -359,7 +345,6 @@ class SessionService:
                 normalized[name] = point
         return normalized
 
->>>>>>> 8ca8ed2 (3D model 1st stage)
     def record_result(self, session_id: str, request: RecordResultRequest) -> RecordResultResponse:
         """Record final performance metrics/results for a session."""
         session = self.get_session(session_id)
@@ -396,9 +381,6 @@ class SessionService:
             session_id=session_id,
             output_path=actual_path,
             message=f"Session exported successfully to {actual_path}"
-<<<<<<< HEAD
-        )
-=======
         )
 
     def export_session_csv(self, session_id: str) -> str:
@@ -461,4 +443,3 @@ class SessionService:
                 return str(int(value))
             return str(value)
         return str(value)
->>>>>>> 8ca8ed2 (3D model 1st stage)

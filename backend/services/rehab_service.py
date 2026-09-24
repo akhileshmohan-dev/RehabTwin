@@ -6,10 +6,7 @@ from typing import Dict, Optional, Any
 
 from rehabilitation.exercises import EXERCISE_REGISTRY, ExerciseDefinition, get_exercise_definition
 from rehabilitation.analysis_pipeline import GenericAnalysisPipeline, ElbowAnalysisPipeline
-<<<<<<< HEAD
-=======
 from backend.services.exercise_catalog import load_catalog
->>>>>>> 8ca8ed2 (3D model 1st stage)
 
 from backend.schemas.analysis import (
     ExerciseInfo,
@@ -31,20 +28,6 @@ class RehabService:
         pass
 
     def list_exercises(self) -> ExerciseListResponse:
-<<<<<<< HEAD
-        """Return catalog of available rehabilitation exercise definitions."""
-        exercises_list = []
-        for ex in EXERCISE_REGISTRY.values():
-            exercises_list.append(
-                ExerciseInfo(
-                    id=ex.id,
-                    name=ex.name,
-                    joint_angle=ex.joint_angle,
-                    movement_type=ex.movement_type,
-                    description=ex.description,
-                    supported_sides=["left", "right"],
-                    side=ex.side,
-=======
         """
         Return the CSV-driven exercise catalog offered to users.
 
@@ -77,7 +60,6 @@ class RehabService:
                     rom_max_deg=row["rom_max_deg"],
                     target_reps=row["target_reps"],
                     registry_key=registry_key,
->>>>>>> 8ca8ed2 (3D model 1st stage)
                 )
             )
         return ExerciseListResponse(

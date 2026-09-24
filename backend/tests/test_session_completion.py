@@ -577,12 +577,8 @@ class TestSessionCompletionPhase5D(unittest.TestCase):
         # Telemetry will only record frame 5 (valid_frame_count % 5 == 0)
         # Send 5 frames at 40.0 and 5 frames at 140.0 (10 frames total)
         # to ensure moving average smoothing window reaches full excursion.
-<<<<<<< HEAD
-        with patch("backend.routes.analysis.mp") as mock_mp:
-=======
         with patch.dict(os.environ, {"TELEMETRY_EVERY_N_VALID": "5"}), \
              patch("backend.routes.analysis.mp") as mock_mp:
->>>>>>> 8ca8ed2 (3D model 1st stage)
             mock_inst = MagicMock()
             mock_mp.solutions.pose.Pose.return_value = mock_inst
 

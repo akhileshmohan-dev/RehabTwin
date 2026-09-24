@@ -27,11 +27,7 @@ def run_sqlite_migrations(engine: Engine) -> Dict[str, bool]:
     - Creates 'patient_exercises' table for therapist rehabilitation plans.
     - Preserves all indexes and foreign keys.
     """
-<<<<<<< HEAD
-    applied = {"sessions": False, "results": False, "patients": False, "patient_exercises": False}
-=======
     applied = {"sessions": False, "results": False, "patients": False, "patient_exercises": False, "frames": False}
->>>>>>> 8ca8ed2 (3D model 1st stage)
 
     # Only run SQLite PRAGMA checks if dialect is sqlite
     if engine.dialect.name != "sqlite":
@@ -100,9 +96,6 @@ def run_sqlite_migrations(engine: Engine) -> Dict[str, bool]:
             conn.execute(text("CREATE INDEX IF NOT EXISTS ix_patient_exercises_patient_id ON patient_exercises(patient_id)"))
             applied["patient_exercises"] = True
 
-<<<<<<< HEAD
-    # 5. Check if sessions table has enforced foreign key to patients
-=======
         # 5. Add image dimension columns to frames if absent (backward-compatible; nullable)
         if "frames" in tables:
             frames_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(frames)")).fetchall()}
@@ -114,7 +107,6 @@ def run_sqlite_migrations(engine: Engine) -> Dict[str, bool]:
                 applied["frames"] = True
 
     # 6. Check if sessions table has enforced foreign key to patients
->>>>>>> 8ca8ed2 (3D model 1st stage)
     raw_conn = engine.raw_connection()
     cursor = raw_conn.cursor()
     try:

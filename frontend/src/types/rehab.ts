@@ -106,8 +106,6 @@ export interface Exercise {
   supported_sides?: ("left" | "right")[];
   side?: "left" | "right" | string;
 }
-<<<<<<< HEAD
-=======
 
 export interface SessionFrameLandmark {
   x: number;
@@ -133,4 +131,3 @@ export interface SessionFramesResponse {
   frame_count: number;
   frames: SessionFrame[];
 }
->>>>>>> 8ca8ed2 (3D model 1st stage)

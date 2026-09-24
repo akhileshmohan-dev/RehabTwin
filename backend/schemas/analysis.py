@@ -13,8 +13,6 @@ class ExerciseInfo(BaseModel):
     description: str
     supported_sides: List[str] = Field(default_factory=lambda: ["left", "right"])
     side: Optional[str] = "left"
-<<<<<<< HEAD
-=======
     # Catalog columns (exposed by GET /api/analysis/exercises)
     exercise_id: Optional[str] = None
     exercise_name: Optional[str] = None
@@ -23,7 +21,6 @@ class ExerciseInfo(BaseModel):
     rom_max_deg: Optional[float] = None
     target_reps: Optional[int] = None
     registry_key: Optional[str] = None
->>>>>>> 8ca8ed2 (3D model 1st stage)
 
 
 class ExerciseListResponse(BaseModel):

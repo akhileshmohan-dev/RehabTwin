@@ -2,11 +2,7 @@
 FastAPI router handling session lifecycle and frame/result recording endpoints.
 """
 from typing import Optional
-<<<<<<< HEAD
-from fastapi import APIRouter, Depends, HTTPException, status
-=======
 from fastapi import APIRouter, Depends, HTTPException, Response, status
->>>>>>> 8ca8ed2 (3D model 1st stage)
 
 from backend.core.dependencies import (
     get_session_repo,
@@ -42,10 +38,7 @@ from backend.schemas.session import (
     RecordResultRequest,
     RecordResultResponse,
     ExportSessionResponse,
-<<<<<<< HEAD
-=======
     SessionFramesResponse,
->>>>>>> 8ca8ed2 (3D model 1st stage)
 )
 
 router = APIRouter(
@@ -165,8 +158,6 @@ def record_frame(
         )
 
 
-<<<<<<< HEAD
-=======
 @router.get(
     "/{session_id}/frames",
     response_model=SessionFramesResponse,
@@ -185,7 +176,6 @@ def get_session_frames(
         )
 
 
->>>>>>> 8ca8ed2 (3D model 1st stage)
 @router.post(
     "/{session_id}/results",
     response_model=RecordResultResponse,
@@ -212,8 +202,6 @@ def record_result(
 
 
 @router.get(
-<<<<<<< HEAD
-=======
     "/{session_id}/export.csv",
     summary="Export a session result as a single CSV row"
 )
@@ -236,7 +224,6 @@ def export_session_csv(
 
 
 @router.get(
->>>>>>> 8ca8ed2 (3D model 1st stage)
     "/{session_id}/export",
     response_model=ExportSessionResponse,
     summary="Export session data to JSON file"
