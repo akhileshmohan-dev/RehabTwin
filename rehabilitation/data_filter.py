@@ -28,11 +28,10 @@ LANDMARKS_FOR_ANGLE = {
         "RIGHT_HIP",
         "RIGHT_KNEE",
         "RIGHT_ANKLE"
-    ]
+    ],
 }
 
-#measurement validity based on landmark visibility.
-    
+
 def is_valid_measurement(angle, visibility, min_visibility=0.5):
     """Check whether an angle measurement is reliable."""
 

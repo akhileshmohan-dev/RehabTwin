@@ -5,3 +5,8 @@ __pycache__/
 .env
 rehabilitation/elbow_motion.csv
 data/*.db
+
+# Local test/generated files
+test_repositories.db
+test_output.txt
+test_export.json

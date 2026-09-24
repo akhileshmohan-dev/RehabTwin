@@ -1,102 +1,44 @@
-"""For each one, it defines:
+"""
+Legacy exercise configuration map.
+Delegates to unified rehabilitation.exercises.EXERCISE_REGISTRY
+to ensure ExerciseDefinition remains the single source of truth.
+"""
+from rehabilitation.exercises import EXERCISE_REGISTRY, ExerciseDefinition
 
-flexed threshold
-extended threshold
-left-side angle
-right-side angle
-required landmarks"""
+
+class _ExerciseConfigProxy(dict):
+    """Dynamically proxies configuration from unified EXERCISE_REGISTRY."""
+
+    def __getitem__(self, key: str):
+        if key not in EXERCISE_REGISTRY:
+            raise KeyError(key)
+        ex: ExerciseDefinition = EXERCISE_REGISTRY[key]
+        return {
+            "angle_name": ex.joint_angle,
+            "landmarks": list(ex.landmarks),
+            "flexed_threshold": ex.flexed_threshold,
+            "extended_threshold": ex.extended_threshold,
+        }
+
+    def __contains__(self, key: str):
+        return key in EXERCISE_REGISTRY
+
+    def keys(self):
+        return EXERCISE_REGISTRY.keys()
+
+    def get(self, key: str, default=None):
+        if key in EXERCISE_REGISTRY:
+            return self[key]
+        return default
+
+    def items(self):
+        return [(k, self[k]) for k in EXERCISE_REGISTRY.keys()]
+
+    def values(self):
+        return [self[k] for k in EXERCISE_REGISTRY.keys()]
+
+    def __len__(self):
+        return len(EXERCISE_REGISTRY)
 
 
-EXERCISE_CONFIG = {
-    "elbow_flexion": {
-        "flexed_threshold": 100,
-        "extended_threshold": 160,
-
-        "left": {
-            "angle_name": "left_elbow",
-            "landmarks": [
-                "LEFT_SHOULDER",
-                "LEFT_ELBOW",
-                "LEFT_WRIST",
-            ],
-        },
-
-        "right": {
-            "angle_name": "right_elbow",
-            "landmarks": [
-                "RIGHT_SHOULDER",
-                "RIGHT_ELBOW",
-                "RIGHT_WRIST",
-            ],
-        },
-    },
-
-    "shoulder_flexion": {
-        "flexed_threshold": 60,
-        "extended_threshold": 160,
-
-        "left": {
-            "angle_name": "left_shoulder",
-            "landmarks": [
-                "LEFT_HIP",
-                "LEFT_SHOULDER",
-                "LEFT_ELBOW",
-            ],
-        },
-
-        "right": {
-            "angle_name": "right_shoulder",
-            "landmarks": [
-                "RIGHT_HIP",
-                "RIGHT_SHOULDER",
-                "RIGHT_ELBOW",
-            ],
-        },
-    },
-
-    "shoulder_abduction": {
-        "flexed_threshold": 60,
-        "extended_threshold": 160,
-
-        "left": {
-            "angle_name": "left_shoulder",
-            "landmarks": [
-                "LEFT_HIP",
-                "LEFT_SHOULDER",
-                "LEFT_ELBOW",
-            ],
-        },
-
-        "right": {
-            "angle_name": "right_shoulder",
-            "landmarks": [
-                "RIGHT_HIP",
-                "RIGHT_SHOULDER",
-                "RIGHT_ELBOW",
-            ],
-        },
-    },
-
-    "knee_flexion": {
-        "flexed_threshold": 100,
-        "extended_threshold": 160,
-
-        "left": {
-            "angle_name": "left_knee",
-            "landmarks": [
-                "LEFT_HIP",
-                "LEFT_KNEE",
-                "LEFT_ANKLE",
-            ],
-        },
-
-        "right": {
-            "angle_name": "right_knee",
-            "landmarks": [
-                "RIGHT_HIP",
-                "RIGHT_KNEE",
-                "RIGHT_ANKLE",
-            ],
-        },
-    },
-}
+EXERCISE_CONFIG = _ExerciseConfigProxy()

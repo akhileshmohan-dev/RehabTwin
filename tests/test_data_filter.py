@@ -81,3 +81,24 @@ def test_unknown_angle():
         assert False
     except ValueError:
         assert True
+
+def test_knee_and_shoulder_angle_support():
+    knee_frame = {
+        "angles": {"left_knee": 110.0, "right_knee": 115.0},
+        "visibility": {
+            "LEFT_HIP": 0.9, "LEFT_KNEE": 0.9, "LEFT_ANKLE": 0.9,
+            "RIGHT_HIP": 0.9, "RIGHT_KNEE": 0.9, "RIGHT_ANKLE": 0.9,
+        }
+    }
+    assert get_valid_angle(knee_frame, "left_knee") == 110.0
+    assert get_valid_angle(knee_frame, "right_knee") == 115.0
+
+    shoulder_frame = {
+        "angles": {"left_shoulder": 85.0, "right_shoulder": 90.0},
+        "visibility": {
+            "LEFT_HIP": 0.9, "LEFT_SHOULDER": 0.9, "LEFT_ELBOW": 0.9,
+            "RIGHT_HIP": 0.9, "RIGHT_SHOULDER": 0.9, "RIGHT_ELBOW": 0.9,
+        }
+    }
+    assert get_valid_angle(shoulder_frame, "left_shoulder") == 85.0
+    assert get_valid_angle(shoulder_frame, "right_shoulder") == 90.0

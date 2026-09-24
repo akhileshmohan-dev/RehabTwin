@@ -227,7 +227,7 @@
     opacity: 0;
   }
   to {
-    opacity: 0.5;
+    opacity: 1;
   }
 }
 
@@ -243,11 +243,12 @@
 }
 
 .animate-backdrop-fade {
-  animation: backdrop-fade 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: backdrop-fade 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.animate-modal-scale-in {
-  animation: modal-scale-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.animate-modal-scale-in,
+.animate-scale-up {
+  animation: modal-scale-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Button hover feedback */

@@ -10,11 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PatientRouteImport } from './routes/patient'
 import { Route as TherapistRouteImport } from './routes/therapist'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatientRoute = PatientRouteImport.update({
+  id: '/patient',
+  path: '/patient',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TherapistRoute = TherapistRouteImport.update({
@@ -25,27 +31,31 @@ const TherapistRoute = TherapistRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/patient': typeof PatientRoute
   '/therapist': typeof TherapistRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/patient': typeof PatientRoute
   '/therapist': typeof TherapistRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/patient': typeof PatientRoute
   '/therapist': typeof TherapistRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/therapist'
+  fullPaths: '/' | '/patient' | '/therapist'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/therapist'
-  id: '__root__' | '/' | '/therapist'
+  to: '/' | '/patient' | '/therapist'
+  id: '__root__' | '/' | '/patient' | '/therapist'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PatientRoute: typeof PatientRoute
   TherapistRoute: typeof TherapistRoute
 }
 
@@ -56,6 +66,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patient': {
+      id: '/patient'
+      path: '/patient'
+      fullPath: '/patient'
+      preLoaderRoute: typeof PatientRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/therapist': {
@@ -70,6 +87,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PatientRoute: PatientRoute,
   TherapistRoute: TherapistRoute,
 }
 export const routeTree = rootRouteImport

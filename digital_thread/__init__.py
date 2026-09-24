@@ -1,4 +1,4 @@
-from .models import Base, Session, Frame, Result
-from .thread import DigitalThread
+﻿from .models import Base, Session, Frame, Result
 
-__all__ = ["Base", "Session", "Frame", "Result", "DigitalThread"]
+__all__ = ["Base", "Session", "Frame", "Result"]
+
