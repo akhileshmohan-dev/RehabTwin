@@ -1,4 +1,8 @@
 from abc import ABC, abstractmethod
+<<<<<<< HEAD
+=======
+from datetime import datetime
+>>>>>>> 8ca8ed2 (3D model 1st stage)
 from typing import List, Dict, Optional, Any
 
 
@@ -186,8 +190,40 @@ class ITelemetryRepository(ABC):
         landmarks: Dict[str, Any],
         joint_angles: Dict[str, float],
         phase: Optional[str] = None,
+<<<<<<< HEAD
     ) -> None:
         """Persist a single frame of telemetry."""
+=======
+        timestamp: Optional[datetime] = None,
+        image_width: Optional[int] = None,
+        image_height: Optional[int] = None,
+    ) -> None:
+        """
+        Persist a single frame of telemetry.
+
+        timestamp defaults to server receipt time when not supplied.
+        image_width/image_height record the analysed frame dimensions so that
+        pixel landmarks can be normalized for replay. Both are nullable for
+        backward compatibility with pre-existing rows.
+        """
+        pass
+
+    @abstractmethod
+    def list_frames(self, session_id: str) -> List[Dict[str, Any]]:
+        """
+        Return all persisted frames for a session ordered by frame_id ascending.
+
+        Each item is a dict with:
+        - frame_id (int)
+        - timestamp (datetime)
+        - landmarks (Dict[str, Any])
+        - joint_angles (Dict[str, float])
+        - phase (Optional[str])
+        - image_width (Optional[int])
+        - image_height (Optional[int])
+        Raises KeyError if the session does not exist.
+        """
+>>>>>>> 8ca8ed2 (3D model 1st stage)
         pass
 
 

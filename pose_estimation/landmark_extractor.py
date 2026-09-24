@@ -6,7 +6,10 @@ def extract_landmarks(results, frame_width, frame_height):
     """
     Returns structured landmark data with pixel coordinates and visibility.
     Returns None if no pose detected.
+<<<<<<< HEAD
     Converts MediaPipe's raw pose output into a Python dictionary that the rest of the project can actually use.
+=======
+>>>>>>> 8ca8ed2 (3D model 1st stage)
     """
     if not results.pose_landmarks:
         return None

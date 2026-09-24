@@ -13,6 +13,13 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
+<<<<<<< HEAD
+=======
+    server: {
+      port: 8081,
+      strictPort: true,
+    },
+>>>>>>> 8ca8ed2 (3D model 1st stage)
     optimizeDeps: {
       include: [
         "react",

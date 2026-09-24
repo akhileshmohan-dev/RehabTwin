@@ -2,9 +2,18 @@
 Session service orchestrating session lifecycle and telemetry persistence
 via repository interfaces.
 """
+<<<<<<< HEAD
 from typing import Any, Dict, Optional
 import os
 from rehabilitation.exercises import EXERCISE_REGISTRY
+=======
+from typing import Any, Dict, List, Optional
+import csv
+import io
+import os
+from rehabilitation.exercises import EXERCISE_REGISTRY
+from backend.services.exercise_catalog import catalog_row_for_registry_key
+>>>>>>> 8ca8ed2 (3D model 1st stage)
 
 from backend.repositories.interfaces import (
     ISessionRepository,
@@ -24,6 +33,11 @@ from backend.schemas.session import (
     RecordResultRequest,
     RecordResultResponse,
     ExportSessionResponse,
+<<<<<<< HEAD
+=======
+    SessionFrameData,
+    SessionFramesResponse,
+>>>>>>> 8ca8ed2 (3D model 1st stage)
 )
 
 
@@ -65,6 +79,26 @@ class SessionNoResultException(Exception):
 
 VALID_SIDES = {"left", "right"}
 
+<<<<<<< HEAD
+=======
+# Exact column order for the single-row CSV export.
+CSV_EXPORT_COLUMNS = [
+    "exercise_id",
+    "exercise_name",
+    "target_joint",
+    "side",
+    "rom_min_deg",
+    "rom_max_deg",
+    "target_reps",
+    "session_id",
+    "patient_id",
+    "repetitions",
+    "rom_min",
+    "rom_max",
+    "performance_score",
+]
+
+>>>>>>> 8ca8ed2 (3D model 1st stage)
 
 def normalize_side(side: Optional[str]) -> str:
     """Normalize and validate exercise side."""
@@ -252,6 +286,80 @@ class SessionService:
             message="Frame recorded successfully."
         )
 
+<<<<<<< HEAD
+=======
+    def get_frames(self, session_id: str) -> SessionFramesResponse:
+        """
+        Return all persisted frames for a session for 3D replay, ordered by frame_id.
+
+        Landmark x/y are normalized to 0-1 using the recorded analysed-frame
+        dimensions; z and visibility are preserved. t_ms is relative to the first
+        stored frame. Raises SessionNotFoundException for unknown sessions.
+        """
+        session = self.get_session(session_id)
+        rows = self.telemetry_repo.list_frames(session_id)
+
+        first_ts = rows[0]["timestamp"] if rows else None
+        image_width = rows[0].get("image_width") if rows else None
+        image_height = rows[0].get("image_height") if rows else None
+
+        frames: List[SessionFrameData] = []
+        for row in rows:
+            frame_width = row.get("image_width") or image_width
+            frame_height = row.get("image_height") or image_height
+            frames.append(SessionFrameData(
+                frame_id=row["frame_id"],
+                t_ms=self._relative_ms(row.get("timestamp"), first_ts),
+                landmarks=self._normalize_landmarks(
+                    row.get("landmarks") or {}, frame_width, frame_height
+                ),
+                joint_angles=row.get("joint_angles") or {},
+                phase=row.get("phase"),
+            ))
+
+        return SessionFramesResponse(
+            session_id=session.session_id,
+            exercise=session.exercise,
+            side=session.side,
+            image_width=image_width,
+            image_height=image_height,
+            frame_count=len(frames),
+            frames=frames,
+        )
+
+    @staticmethod
+    def _relative_ms(timestamp: Any, first: Any) -> float:
+        """Milliseconds from the first frame timestamp, clamped at >= 0."""
+        if timestamp is None or first is None:
+            return 0.0
+        try:
+            delta = (timestamp - first).total_seconds() * 1000.0
+        except TypeError:
+            return 0.0
+        return max(0.0, float(delta))
+
+    @staticmethod
+    def _normalize_landmarks(
+        landmarks: Dict[str, Any],
+        image_width: Optional[int],
+        image_height: Optional[int],
+    ) -> Dict[str, Any]:
+        """Normalize pixel landmark x/y to 0-1 when frame dimensions are known."""
+        if not image_width or not image_height:
+            return landmarks
+        normalized: Dict[str, Any] = {}
+        for name, point in landmarks.items():
+            if isinstance(point, dict) and "x" in point and "y" in point:
+                normalized[name] = {
+                    **point,
+                    "x": point["x"] / image_width,
+                    "y": point["y"] / image_height,
+                }
+            else:
+                normalized[name] = point
+        return normalized
+
+>>>>>>> 8ca8ed2 (3D model 1st stage)
     def record_result(self, session_id: str, request: RecordResultRequest) -> RecordResultResponse:
         """Record final performance metrics/results for a session."""
         session = self.get_session(session_id)
@@ -288,4 +396,69 @@ class SessionService:
             session_id=session_id,
             output_path=actual_path,
             message=f"Session exported successfully to {actual_path}"
+<<<<<<< HEAD
         )
+=======
+        )
+
+    def export_session_csv(self, session_id: str) -> str:
+        """
+        Return a single-header + single-row CSV for a session.
+
+        The first seven columns come from the exercise catalog row mapped to the
+        session's exercise (side overridden with the session's actual side);
+        the appended columns carry the session id, patient id, and results.
+        """
+        session = self.get_session(session_id)
+        result = self.result_repo.get_result(session_id) or {}
+        catalog = catalog_row_for_registry_key(session.exercise)
+        registry_def = EXERCISE_REGISTRY.get(session.exercise)
+
+        if catalog:
+            exercise_id = catalog["exercise_id"]
+            exercise_name = catalog["exercise_name"]
+            target_joint = catalog["target_joint"]
+            rom_min_deg = catalog["rom_min_deg"]
+            rom_max_deg = catalog["rom_max_deg"]
+            target_reps = catalog["target_reps"]
+        else:
+            exercise_id = session.exercise
+            exercise_name = registry_def.name if registry_def else session.exercise
+            target_joint = registry_def.target_joint if registry_def else ""
+            rom_min_deg = ""
+            rom_max_deg = ""
+            target_reps = ""
+
+        row = [
+            exercise_id,
+            exercise_name,
+            target_joint,
+            session.side,
+            self._format_csv_number(rom_min_deg),
+            self._format_csv_number(rom_max_deg),
+            target_reps,
+            session.session_id,
+            session.patient_id,
+            result.get("repetitions", ""),
+            self._format_csv_number(result.get("rom_min")),
+            self._format_csv_number(result.get("rom_max")),
+            self._format_csv_number(result.get("performance_score")),
+        ]
+
+        buffer = io.StringIO()
+        writer = csv.writer(buffer, lineterminator="\n")
+        writer.writerow(CSV_EXPORT_COLUMNS)
+        writer.writerow(row)
+        return buffer.getvalue()
+
+    @staticmethod
+    def _format_csv_number(value: Any) -> Any:
+        """Render integral floats without a trailing .0; empty for None."""
+        if value is None or value == "":
+            return ""
+        if isinstance(value, float):
+            if value.is_integer():
+                return str(int(value))
+            return str(value)
+        return str(value)
+>>>>>>> 8ca8ed2 (3D model 1st stage)

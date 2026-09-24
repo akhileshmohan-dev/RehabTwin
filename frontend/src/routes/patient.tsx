@@ -18,16 +18,28 @@ import {
   LogOut,
   ChevronRight,
   FileText,
+<<<<<<< HEAD
+=======
+  ShieldCheck,
+>>>>>>> 8ca8ed2 (3D model 1st stage)
 } from "lucide-react";
 import {
   fetchPatients,
   fetchPatientAssignments,
   fetchPatientSessions,
+<<<<<<< HEAD
+=======
+  fetchExercises,
+>>>>>>> 8ca8ed2 (3D model 1st stage)
   startSession,
   endSession,
   getWebSocketUrl,
 } from "@/data/rehabService";
+<<<<<<< HEAD
 import type { Patient, PatientAssignment, Session } from "@/types/rehab";
+=======
+import type { Patient, PatientAssignment, Session, Exercise } from "@/types/rehab";
+>>>>>>> 8ca8ed2 (3D model 1st stage)
 import { formatDateTime } from "@/lib/format";
 import { Logo } from "@/components/common/Logo";
 
@@ -113,6 +125,13 @@ function PatientPortal() {
   const [historySessions, setHistorySessions] = useState<Session[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
+<<<<<<< HEAD
+=======
+  // Exercise catalog (GET /api/analysis/exercises) — controls offered exercises + supported sides
+  const [catalog, setCatalog] = useState<Exercise[]>([]);
+  const [chosenSides, setChosenSides] = useState<Record<number, "left" | "right">>({});
+
+>>>>>>> 8ca8ed2 (3D model 1st stage)
   // Live session & camera refs
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -186,12 +205,24 @@ function PatientPortal() {
     setHistoryLoading(true);
 
     try {
+<<<<<<< HEAD
       const [assigns, sessions] = await Promise.all([
         fetchPatientAssignments(patientId),
         fetchPatientSessions(patientId),
       ]);
       setAssignments(assigns);
       setHistorySessions(sessions);
+=======
+      const [assigns, sessions, catalogList] = await Promise.all([
+        fetchPatientAssignments(patientId),
+        fetchPatientSessions(patientId),
+        // Catalog failure must not break the prescribed plan view
+        fetchExercises().catch(() => [] as Exercise[]),
+      ]);
+      setAssignments(assigns);
+      setHistorySessions(sessions);
+      setCatalog(catalogList);
+>>>>>>> 8ca8ed2 (3D model 1st stage)
     } catch (err: any) {
       setAssignmentsError(err.message || "Failed to load patient plan.");
     } finally {
@@ -205,6 +236,10 @@ function PatientPortal() {
     setSelectedAssignment(null);
     setSessionStatus("idle");
     setFinalResult(null);
+<<<<<<< HEAD
+=======
+    setChosenSides({});
+>>>>>>> 8ca8ed2 (3D model 1st stage)
     loadPatientData(patient.id);
   };
 
@@ -237,6 +272,16 @@ function PatientPortal() {
     return assignments.filter((a) => a.active);
   }, [assignments]);
 
+<<<<<<< HEAD
+=======
+  // Catalog lookup by exercise id
+  const catalogById = useMemo(() => {
+    const map = new Map<string, Exercise>();
+    for (const ex of catalog) map.set(ex.id, ex);
+    return map;
+  }, [catalog]);
+
+>>>>>>> 8ca8ed2 (3D model 1st stage)
   // -------------------------------------------------------------------------
   // Cleanup helpers
   // -------------------------------------------------------------------------
@@ -516,8 +561,18 @@ function PatientPortal() {
       }
       setCameraStatus("active");
 
+<<<<<<< HEAD
       // 2. Start session authoritatively with patientId and assignmentId
       const response = await startSession(selectedPatient.id, selectedAssignment.id);
+=======
+      // 2. Start session authoritatively with patientId, assignmentId, exercise and side
+      const response = await startSession(
+        selectedPatient.id,
+        selectedAssignment.id,
+        selectedAssignment.exercise_id,
+        selectedAssignment.side
+      );
+>>>>>>> 8ca8ed2 (3D model 1st stage)
       const sid: string = response.session_id;
       setSessionId(sid);
       setSessionStatus("active");
@@ -837,7 +892,21 @@ function PatientPortal() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+<<<<<<< HEAD
                 {activeAssignments.map((assignment) => (
+=======
+                {activeAssignments.map((assignment) => {
+                  const catalogExercise = catalogById.get(assignment.exercise_id);
+                  const availableSides = Array.from(
+                    new Set(
+                      activeAssignments
+                        .filter((a) => a.exercise_id === assignment.exercise_id)
+                        .map((a) => a.side)
+                    )
+                  );
+                  const chosenSide = chosenSides[assignment.id] ?? assignment.side;
+                  return (
+>>>>>>> 8ca8ed2 (3D model 1st stage)
                   <div
                     key={assignment.id}
                     className="rounded-2xl border border-border bg-card p-5 shadow-card hover:border-emerald-500 transition-all flex flex-col justify-between gap-4"
@@ -845,19 +914,56 @@ function PatientPortal() {
                     <div className="space-y-2.5">
                       <div className="flex items-center justify-between gap-2">
                         <h3 className="font-bold text-lg text-foreground">
+<<<<<<< HEAD
                           {assignment.exercise_name || assignment.exercise_id}
                         </h3>
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase ${
                             assignment.side.toLowerCase() === "right"
+=======
+                          {catalogExercise?.name || assignment.exercise_name || assignment.exercise_id}
+                        </h3>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase ${
+                            chosenSide === "right"
+>>>>>>> 8ca8ed2 (3D model 1st stage)
                               ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
                               : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                           }`}
                         >
+<<<<<<< HEAD
                           {assignment.side} Side
                         </span>
                       </div>
 
+=======
+                          {chosenSide} Side
+                        </span>
+                      </div>
+
+                      {catalogExercise?.side === "both" && availableSides.length > 1 && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] uppercase font-bold text-muted-foreground">
+                            Choose side
+                          </span>
+                          {availableSides.map((s) => (
+                            <button
+                              key={s}
+                              type="button"
+                              onClick={() => setChosenSides((prev) => ({ ...prev, [assignment.id]: s }))}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors ${
+                                chosenSide === s
+                                  ? "bg-emerald-600 text-white border-emerald-600"
+                                  : "bg-background text-muted-foreground border-border hover:text-foreground"
+                              }`}
+                            >
+                              {s === "left" ? "Left" : "Right"}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+>>>>>>> 8ca8ed2 (3D model 1st stage)
                       <div className="grid grid-cols-3 gap-2 pt-1">
                         <div className="rounded-xl border border-border/60 bg-muted/30 p-2 text-center">
                           <p className="text-[10px] uppercase font-bold text-muted-foreground">Target ROM</p>
@@ -889,17 +995,33 @@ function PatientPortal() {
                     <button
                       type="button"
                       onClick={() => {
+<<<<<<< HEAD
                         setSelectedAssignment(assignment);
+=======
+                        const match =
+                          activeAssignments.find(
+                            (a) => a.exercise_id === assignment.exercise_id && a.side === chosenSide
+                          ) ?? assignment;
+                        setSelectedAssignment(match);
+>>>>>>> 8ca8ed2 (3D model 1st stage)
                         setSessionStatus("idle");
                         setFinalResult(null);
                       }}
                       className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-emerald-500 transition-all btn-interactive"
                     >
                       <Play className="size-4 fill-current" />
+<<<<<<< HEAD
                       <span>Start {assignment.exercise_name || assignment.exercise_id}</span>
                     </button>
                   </div>
                 ))}
+=======
+                      <span>Start {catalogExercise?.name || assignment.exercise_name || assignment.exercise_id}</span>
+                    </button>
+                  </div>
+                  );
+                })}
+>>>>>>> 8ca8ed2 (3D model 1st stage)
               </div>
             )}
           </div>
@@ -1236,6 +1358,18 @@ function PatientPortal() {
           )}
         </div>
 
+<<<<<<< HEAD
+=======
+        {/* Privacy assurance */}
+        <p className="w-full flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
+          <ShieldCheck className="size-3.5 shrink-0 text-emerald-500" />
+          <span>
+            Your video is never saved. Only body-joint coordinates are stored, and your therapist sees them
+            as a 3D model.
+          </span>
+        </p>
+
+>>>>>>> 8ca8ed2 (3D model 1st stage)
         {/* Final result panel */}
         {finalResult && sessionStatus === "completed" && (
           <div className="w-full bg-card border border-border rounded-3xl p-6 shadow-lg space-y-4">

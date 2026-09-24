@@ -106,3 +106,31 @@ export interface Exercise {
   supported_sides?: ("left" | "right")[];
   side?: "left" | "right" | string;
 }
+<<<<<<< HEAD
+=======
+
+export interface SessionFrameLandmark {
+  x: number;
+  y: number;
+  z?: number;
+  visibility?: number;
+}
+
+export interface SessionFrame {
+  frame_id: number;
+  t_ms: number;
+  landmarks: Record<string, SessionFrameLandmark>;
+  joint_angles: Record<string, number>;
+  phase?: string | null;
+}
+
+export interface SessionFramesResponse {
+  session_id: string;
+  exercise: string;
+  side: string;
+  image_width?: number | null;
+  image_height?: number | null;
+  frame_count: number;
+  frames: SessionFrame[];
+}
+>>>>>>> 8ca8ed2 (3D model 1st stage)

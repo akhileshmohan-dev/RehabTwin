@@ -6,6 +6,10 @@ from typing import Dict, Optional, Any
 
 from rehabilitation.exercises import EXERCISE_REGISTRY, ExerciseDefinition, get_exercise_definition
 from rehabilitation.analysis_pipeline import GenericAnalysisPipeline, ElbowAnalysisPipeline
+<<<<<<< HEAD
+=======
+from backend.services.exercise_catalog import load_catalog
+>>>>>>> 8ca8ed2 (3D model 1st stage)
 
 from backend.schemas.analysis import (
     ExerciseInfo,
@@ -27,6 +31,7 @@ class RehabService:
         pass
 
     def list_exercises(self) -> ExerciseListResponse:
+<<<<<<< HEAD
         """Return catalog of available rehabilitation exercise definitions."""
         exercises_list = []
         for ex in EXERCISE_REGISTRY.values():
@@ -39,6 +44,40 @@ class RehabService:
                     description=ex.description,
                     supported_sides=["left", "right"],
                     side=ex.side,
+=======
+        """
+        Return the CSV-driven exercise catalog offered to users.
+
+        Each row exposes all catalog columns plus the mapped registry key and the
+        legacy fields the frontend already consumes (id/name/joint_angle/etc.).
+        Catalog entries without a registry mapping are skipped so every offered
+        exercise is analysable by the pipeline.
+        """
+        exercises_list = []
+        for row in load_catalog():
+            registry_key = row.get("registry_key")
+            if not registry_key or registry_key not in EXERCISE_REGISTRY:
+                continue
+            ex = EXERCISE_REGISTRY[registry_key]
+            side = row["side"]
+            supported_sides = ["left", "right"] if side == "both" else [side]
+            exercises_list.append(
+                ExerciseInfo(
+                    id=registry_key,
+                    name=row["exercise_name"],
+                    joint_angle=ex.joint_angle,
+                    movement_type=ex.movement_type,
+                    description=ex.description,
+                    supported_sides=supported_sides,
+                    side=side,
+                    exercise_id=row["exercise_id"],
+                    exercise_name=row["exercise_name"],
+                    target_joint=row["target_joint"],
+                    rom_min_deg=row["rom_min_deg"],
+                    rom_max_deg=row["rom_max_deg"],
+                    target_reps=row["target_reps"],
+                    registry_key=registry_key,
+>>>>>>> 8ca8ed2 (3D model 1st stage)
                 )
             )
         return ExerciseListResponse(

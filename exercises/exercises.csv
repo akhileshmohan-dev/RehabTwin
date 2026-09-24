@@ -1,0 +1,3 @@
+exercise_id,exercise_name,target_joint,side,rom_min_deg,rom_max_deg,target_reps
+ELBOW_FLEX,Elbow Flexion,elbow,both,40,160,10
+SHOULDER_FLEX,Shoulder Flexion,shoulder,both,30,160,8

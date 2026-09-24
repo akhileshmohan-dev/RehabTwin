@@ -3,6 +3,7 @@ venv/
 __pycache__/
 *.pyc
 .env
+<<<<<<< HEAD
 rehabilitation/elbow_motion.csv
 data/*.db
 
@@ -10,3 +11,34 @@ data/*.db
 test_repositories.db
 test_output.txt
 test_export.json
+=======
+.env.*
+!.env.example
+
+# Node/Vite
+node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.output/
+
+# Local databases
+data/*.db
+*.sqlite
+*.sqlite3
+*.db
+
+# Test/export artifacts
+test_export.json
+test_output.txt
+
+# Local ML/model artifacts
+rehabilitation/movement_quality_model.joblib
+
+# Local/generated exercise data
+rehabilitation/elbow_motion.csv
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+>>>>>>> 8ca8ed2 (3D model 1st stage)

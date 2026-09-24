@@ -2,7 +2,11 @@
 FastAPI router handling session lifecycle and frame/result recording endpoints.
 """
 from typing import Optional
+<<<<<<< HEAD
 from fastapi import APIRouter, Depends, HTTPException, status
+=======
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+>>>>>>> 8ca8ed2 (3D model 1st stage)
 
 from backend.core.dependencies import (
     get_session_repo,
@@ -38,6 +42,10 @@ from backend.schemas.session import (
     RecordResultRequest,
     RecordResultResponse,
     ExportSessionResponse,
+<<<<<<< HEAD
+=======
+    SessionFramesResponse,
+>>>>>>> 8ca8ed2 (3D model 1st stage)
 )
 
 router = APIRouter(
@@ -157,6 +165,27 @@ def record_frame(
         )
 
 
+<<<<<<< HEAD
+=======
+@router.get(
+    "/{session_id}/frames",
+    response_model=SessionFramesResponse,
+    summary="Retrieve persisted pose frames for 3D replay (normalized coordinates)"
+)
+def get_session_frames(
+    session_id: str,
+    service: SessionService = Depends(get_session_service)
+) -> SessionFramesResponse:
+    try:
+        return service.get_frames(session_id)
+    except SessionNotFoundException:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Session '{session_id}' does not exist."
+        )
+
+
+>>>>>>> 8ca8ed2 (3D model 1st stage)
 @router.post(
     "/{session_id}/results",
     response_model=RecordResultResponse,
@@ -183,6 +212,31 @@ def record_result(
 
 
 @router.get(
+<<<<<<< HEAD
+=======
+    "/{session_id}/export.csv",
+    summary="Export a session result as a single CSV row"
+)
+def export_session_csv(
+    session_id: str,
+    service: SessionService = Depends(get_session_service)
+) -> Response:
+    try:
+        csv_text = service.export_session_csv(session_id)
+    except SessionNotFoundException:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Session '{session_id}' does not exist."
+        )
+    return Response(
+        content=csv_text,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{session_id}.csv"'},
+    )
+
+
+@router.get(
+>>>>>>> 8ca8ed2 (3D model 1st stage)
     "/{session_id}/export",
     response_model=ExportSessionResponse,
     summary="Export session data to JSON file"

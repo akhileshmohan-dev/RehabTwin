@@ -1,7 +1,11 @@
 """
 Pydantic schemas for session lifecycle management and telemetry.
 """
+<<<<<<< HEAD
 from typing import Any, Dict, Optional
+=======
+from typing import Any, Dict, List, Optional
+>>>>>>> 8ca8ed2 (3D model 1st stage)
 from pydantic import BaseModel, Field
 
 
@@ -66,6 +70,30 @@ class RecordFrameResponse(BaseModel):
     message: str = "Frame recorded successfully"
 
 
+<<<<<<< HEAD
+=======
+class SessionFrameData(BaseModel):
+    frame_id: int
+    t_ms: float = Field(..., description="Milliseconds elapsed since the first stored frame")
+    landmarks: Dict[str, Any] = Field(
+        ...,
+        description="Landmark coords normalized to 0-1 for x,y; z and visibility preserved",
+    )
+    joint_angles: Dict[str, float] = Field(default_factory=dict)
+    phase: Optional[str] = None
+
+
+class SessionFramesResponse(BaseModel):
+    session_id: str
+    exercise: str
+    side: str = "left"
+    image_width: Optional[int] = None
+    image_height: Optional[int] = None
+    frame_count: int
+    frames: List[SessionFrameData]
+
+
+>>>>>>> 8ca8ed2 (3D model 1st stage)
 class RecordResultRequest(BaseModel):
     repetitions: int = Field(..., ge=0, description="Total repetitions performed")
     rom_min: Optional[float] = Field(None, description="Minimum joint angle recorded")

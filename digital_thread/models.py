@@ -89,6 +89,11 @@ class Frame(Base):
     landmarks: Mapped[Dict[str, Any]] = mapped_column(JSON, nullable=False)
     joint_angles: Mapped[Dict[str, float]] = mapped_column(JSON, nullable=False)
     phase: Mapped[Optional[str]] = mapped_column(String(64))
+<<<<<<< HEAD
+=======
+    image_width: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    image_height: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+>>>>>>> 8ca8ed2 (3D model 1st stage)
 
     session: Mapped[Session] = relationship(back_populates="frames")
 

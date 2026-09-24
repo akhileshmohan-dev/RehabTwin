@@ -282,7 +282,12 @@ class TestWebSocket(unittest.TestCase):
             "landmarks": fake_landmarks,
         }
 
+<<<<<<< HEAD
         with patch("backend.routes.analysis.mp") as mock_mp, \
+=======
+        with patch.dict(os.environ, {"TELEMETRY_EVERY_N_VALID": "5"}), \
+             patch("backend.routes.analysis.mp") as mock_mp, \
+>>>>>>> 8ca8ed2 (3D model 1st stage)
              patch("pose_estimation.landmark_extractor.extract_landmarks",
                    return_value=fake_landmarks), \
              patch("pose_estimation.angle_utils.calculate_angle", return_value=120.0), \
@@ -498,7 +503,12 @@ class TestWebSocket(unittest.TestCase):
         r_pose.pose_landmarks = MagicMock()
         r_pose.pose_landmarks.landmark = landmarks
 
+<<<<<<< HEAD
         with patch("backend.routes.analysis.mp") as mock_mp, \
+=======
+        with patch.dict(os.environ, {"TELEMETRY_EVERY_N_VALID": "5"}), \
+             patch("backend.routes.analysis.mp") as mock_mp, \
+>>>>>>> 8ca8ed2 (3D model 1st stage)
              patch("pose_estimation.landmark_extractor.extract_landmarks", return_value=fake_landmarks), \
              patch("pose_estimation.angle_utils.calculate_angle", return_value=90.0), \
              patch("pose_estimation.pose_output.create_pose_frame", return_value=fake_pose_frame):
@@ -636,7 +646,11 @@ class TestWebSocket(unittest.TestCase):
         r_pose = MagicMock()
         r_pose.pose_landmarks = MagicMock()
 
+<<<<<<< HEAD
         with patch("backend.routes.analysis.mp") as mock_mp,              patch("backend.routes.analysis.extract_landmarks", return_value=knee_landmarks),              patch("backend.routes.analysis.calculate_angle", return_value=115.0),              patch("backend.routes.analysis.create_pose_frame", return_value=knee_pose_frame):
+=======
+        with patch.dict(os.environ, {"TELEMETRY_EVERY_N_VALID": "5"}),              patch("backend.routes.analysis.mp") as mock_mp,              patch("backend.routes.analysis.extract_landmarks", return_value=knee_landmarks),              patch("backend.routes.analysis.calculate_angle", return_value=115.0),              patch("backend.routes.analysis.create_pose_frame", return_value=knee_pose_frame):
+>>>>>>> 8ca8ed2 (3D model 1st stage)
 
             mock_inst = MagicMock()
             mock_inst.process.return_value = _mp_valid_pose()
@@ -757,7 +771,11 @@ class TestWebSocket(unittest.TestCase):
                 "landmarks": lm,
             }
 
+<<<<<<< HEAD
         with patch("backend.routes.analysis.mp") as mock_mp,              patch("backend.routes.analysis.extract_landmarks", return_value=elbow_landmarks),              patch("backend.routes.analysis.calculate_angle", side_effect=mock_calc_angle),              patch("backend.routes.analysis.create_pose_frame", side_effect=mock_create_pose):
+=======
+        with patch.dict(os.environ, {"TELEMETRY_EVERY_N_VALID": "5"}),              patch("backend.routes.analysis.mp") as mock_mp,              patch("backend.routes.analysis.extract_landmarks", return_value=elbow_landmarks),              patch("backend.routes.analysis.calculate_angle", side_effect=mock_calc_angle),              patch("backend.routes.analysis.create_pose_frame", side_effect=mock_create_pose):
+>>>>>>> 8ca8ed2 (3D model 1st stage)
 
             mock_inst = MagicMock()
             mock_inst.process.return_value = _mp_valid_pose()
@@ -906,7 +924,12 @@ class TestWebSocket(unittest.TestCase):
                 "landmarks": lm,
             }
 
+<<<<<<< HEAD
         with patch("backend.routes.analysis.mp") as mock_mp, \
+=======
+        with patch.dict(os.environ, {"TELEMETRY_EVERY_N_VALID": "5"}), \
+             patch("backend.routes.analysis.mp") as mock_mp, \
+>>>>>>> 8ca8ed2 (3D model 1st stage)
              patch("backend.routes.analysis.extract_landmarks", side_effect=mock_extract), \
              patch("backend.routes.analysis.calculate_angle", return_value=120.0), \
              patch("backend.routes.analysis.create_pose_frame", side_effect=mock_create):

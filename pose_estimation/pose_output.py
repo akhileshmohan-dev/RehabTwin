@@ -6,8 +6,11 @@ Analysis module (Member 2).
 
 This module has no dependency on any specific exercise — it just packages
 whatever angles/landmarks are passed in.
+<<<<<<< HEAD
 
 PoseFrame acts as the interface between pose estimation and rehabilitation analysis.
+=======
+>>>>>>> 8ca8ed2 (3D model 1st stage)
 """
 
 import time

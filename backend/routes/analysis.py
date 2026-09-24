@@ -3,6 +3,10 @@ FastAPI router handling exercise definitions, pose frame analysis, and real-time
 """
 import base64
 import json
+<<<<<<< HEAD
+=======
+import os
+>>>>>>> 8ca8ed2 (3D model 1st stage)
 import numpy as np
 import cv2
 import mediapipe as mp
@@ -29,6 +33,10 @@ from pose_estimation.pose_output import create_pose_frame
 from rehabilitation.analysis_pipeline import GenericAnalysisPipeline, ElbowAnalysisPipeline
 from rehabilitation.exercises import ExerciseDefinition, get_exercise_definition
 from rehabilitation.pose_validator import validate_pose, PoseStatusCode
+<<<<<<< HEAD
+=======
+from digital_thread.models import utc_now
+>>>>>>> 8ca8ed2 (3D model 1st stage)
 
 router = APIRouter(
     prefix="/api/analysis",
@@ -40,6 +48,23 @@ def get_rehab_service() -> RehabService:
     return RehabService()
 
 
+<<<<<<< HEAD
+=======
+def _telemetry_every_n_valid() -> int:
+    """
+    Persistence stride for valid frames.
+
+    Reads TELEMETRY_EVERY_N_VALID at connection time. Default 1 persists every
+    valid frame (target >= 8 FPS); set >1 to downsample for constrained storage.
+    """
+    raw = os.getenv("TELEMETRY_EVERY_N_VALID", "1")
+    try:
+        return max(1, int(raw))
+    except (TypeError, ValueError):
+        return 1
+
+
+>>>>>>> 8ca8ed2 (3D model 1st stage)
 # ---------------------------------------------------------------------------
 # REST endpoints (unchanged)
 # ---------------------------------------------------------------------------
@@ -272,7 +297,12 @@ async def real_time_telemetry_skeleton(
     valid_frame_count: int = 0
     # frame_id increments for every persisted telemetry frame
     telemetry_frame_id: int = 0
+<<<<<<< HEAD
     TELEMETRY_EVERY_N_VALID: int = 5  # persist ~2 FPS when streaming ~10 FPS
+=======
+    # Persistence stride resolved per connection (env-configurable, default 1)
+    telemetry_every_n_valid: int = _telemetry_every_n_valid()
+>>>>>>> 8ca8ed2 (3D model 1st stage)
 
     try:
         while True:
@@ -303,6 +333,10 @@ async def real_time_telemetry_skeleton(
             # ----------------------------------------------------------
             # 4. Decode base64 JPEG image
             # ----------------------------------------------------------
+<<<<<<< HEAD
+=======
+            receipt_time = utc_now()
+>>>>>>> 8ca8ed2 (3D model 1st stage)
             try:
                 b64_data = data.split(",")[1] if "," in data else data
                 img_bytes = base64.b64decode(b64_data)
@@ -396,10 +430,19 @@ async def real_time_telemetry_skeleton(
             valid_frame_count += 1
 
             # ----------------------------------------------------------
+<<<<<<< HEAD
             # 8. Telemetry persistence - every 5th VALID frame (~2 FPS)
             #    Never stores JPEG bytes - only structured telemetry.
             # ----------------------------------------------------------
             if valid_frame_count % TELEMETRY_EVERY_N_VALID == 0 and pose_frame is not None:
+=======
+            # 8. Telemetry persistence - every Nth VALID frame
+            #    (default N=1: every valid frame, target >= 8 FPS stored).
+            #    Never stores JPEG bytes - only structured telemetry plus the
+            #    analysed frame dimensions so replay can normalize coordinates.
+            # ----------------------------------------------------------
+            if valid_frame_count % telemetry_every_n_valid == 0 and pose_frame is not None:
+>>>>>>> 8ca8ed2 (3D model 1st stage)
                 telemetry_frame_id += 1
                 try:
                     telemetry_repo.record_frame(
@@ -408,6 +451,12 @@ async def real_time_telemetry_skeleton(
                         landmarks=pose_frame["landmarks"],
                         joint_angles=pose_frame["angles"],
                         phase=analysis_dict.get("state"),
+<<<<<<< HEAD
+=======
+                        timestamp=receipt_time,
+                        image_width=frame_width,
+                        image_height=frame_height,
+>>>>>>> 8ca8ed2 (3D model 1st stage)
                     )
                 except Exception:
                     pass  # Telemetry write failure must never kill the live stream
