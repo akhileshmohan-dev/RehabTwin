@@ -248,6 +248,32 @@ class TestTelemetryDensity(unittest.TestCase):
         self.assertEqual(len(frames), 3)
         self.assertEqual([f["frame_id"] for f in frames], [1, 2, 3])
 
+    def test_websocket_persists_landmark_visibility_for_replay(self):
+        sid = _start_session(self.db, "P_VIS")
+        fake_landmarks = {
+            "LEFT_SHOULDER": {"x": 0.3, "y": 0.2, "z": 0.0, "visibility": 0.99},
+            "LEFT_ELBOW": {"x": 0.3, "y": 0.5, "z": 0.0, "visibility": 0.8},
+            "LEFT_WRIST": {"x": 0.5, "y": 0.5, "z": 0.0, "visibility": 0.7},
+        }
+        # The real create_pose_frame is deliberately NOT patched here: this
+        # exercises the PoseFrame -> persistence -> replay contract end to end.
+        with patch("backend.routes.analysis.mp") as mock_mp, \
+             patch("backend.routes.analysis.extract_landmarks", return_value=fake_landmarks), \
+             patch("backend.routes.analysis.calculate_angle", return_value=90.0):
+            mock_inst = MagicMock()
+            mock_inst.process.return_value = _mp_valid_pose()
+            mock_mp.solutions.pose.Pose.return_value = mock_inst
+            with self.client.websocket_connect(f"/api/analysis/ws/{sid}") as ws:
+                ws.send_text(_valid_jpeg_b64())
+                ws.receive_json()
+
+        resp = self.client.get(f"/api/sessions/{sid}/frames")
+        self.assertEqual(resp.status_code, 200)
+        frame_landmarks = resp.json()["frames"][0]["landmarks"]
+        self.assertEqual(frame_landmarks["LEFT_ELBOW"]["visibility"], 0.8)
+        self.assertEqual(frame_landmarks["LEFT_WRIST"]["visibility"], 0.7)
+        self.assertEqual(frame_landmarks["LEFT_ELBOW"]["z"], 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()

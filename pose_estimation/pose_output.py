@@ -32,10 +32,13 @@ def create_pose_frame(landmarks, angles):
     Returns:
         A dict shaped like:
         {
-            "timestamp": float,
+            "timestamp": float,   # Unix epoch time in seconds
             "angles": {...},
-            "visibility": {...},
-            "landmarks": {...}
+            "visibility": {...},  # top-level map, retained for existing consumers
+            "landmarks": {        # each landmark preserves x, y, z AND visibility
+                "<NAME>": {"x": ..., "y": ..., "z": ..., "visibility": ...},
+                ...
+            }
         }
         or None if no pose was detected (landmarks is None) — the
         rehabilitation module should treat None as an invalid/unavailable
@@ -44,7 +47,9 @@ def create_pose_frame(landmarks, angles):
     if landmarks is None:
         return None
 
-    timestamp = time.perf_counter()
+    # Absolute Unix epoch time so recorded frames are comparable with the
+    # UTC timestamps used by the telemetry/repository layer.
+    timestamp = time.time()
 
     visibility = {}
     landmark_coords = {}
@@ -58,6 +63,7 @@ def create_pose_frame(landmarks, angles):
             "x": lm["x"],
             "y": lm["y"],
             "z": lm["z"],
+            "visibility": lm["visibility"],
         }
 
     return {
