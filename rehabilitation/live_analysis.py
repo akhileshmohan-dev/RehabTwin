@@ -38,6 +38,21 @@ OUTPUT_FILE = os.path.join(
 )
 
 
+def _ensure_patient(patient_repo, patient_id):
+    """Ensure the patient row exists before starting a Digital Thread session.
+
+    Reuses the repository pattern from scripts/seed_demo_session.py; the session
+    repository raises PatientNotFoundInRepoException for unknown patients.
+    """
+    if not patient_repo.patient_exists(patient_id):
+        patient_repo.create_patient({
+            "patient_id": patient_id,
+            "name": "Live Analysis Patient",
+            "status": "ACTIVE",
+            "notes": "AUTO-CREATED by rehabilitation/live_analysis.py",
+        })
+
+
 pose = mp_pose.Pose(
     min_detection_confidence=0.5,
     min_tracking_confidence=0.5
@@ -53,6 +68,8 @@ pipeline = ElbowAnalysisPipeline(
 digital_thread = DigitalThread()
 
 patient_id = "TEST-001"
+
+_ensure_patient(digital_thread.patient_repo, patient_id)
 
 session_id = digital_thread.start_session(
     patient_id=patient_id,
@@ -150,7 +167,6 @@ with open(OUTPUT_FILE, "w", newline="") as csv_file:
             )
 
             digital_thread.record_frame(
-                session_id=session_id,
                 frame_id=frame_id,
                 landmarks=pose_frame["landmarks"],
                 joint_angles=pose_frame["angles"],
@@ -221,7 +237,6 @@ final_result = pipeline.process(None)
 rom_result = final_result["rom"]
 
 digital_thread.record_result(
-    session_id=session_id,
     repetitions=final_result["repetitions"],
     rom_min=rom_result["min_angle"],
     rom_max=rom_result["max_angle"],
@@ -230,7 +245,7 @@ digital_thread.record_result(
     feedback=""
 )
 
-digital_thread.end_session(session_id=session_id)
+digital_thread.end_session()
 
 print(f"\nDigital Thread session completed: {session_id}")
 print(f"Data saved to: {OUTPUT_FILE}")
