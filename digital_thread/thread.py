@@ -9,10 +9,16 @@ from digital_thread.db import Database
 
 
 class DigitalThread:
-    """Database-agnostic digital-thread API for RehabTwin.
+    """Legacy compatibility facade over the repository layer.
 
-    Change DATABASE_URL from SQLite to PostgreSQL without changing callers.
-    This class now acts as a backwards-compatible facade delegating to the Repository layer.
+    Retained for standalone tools (e.g. rehabilitation/live_analysis.py and
+    digital_thread/report.py) that rely on its stateful single-session
+    ``session_id`` API. It delegates to the repositories and performs no raw
+    database work.
+
+    The backend service layer does NOT use this class: SessionService and
+    PatientService consume repository interfaces directly, and the FastAPI
+    dependency graph intentionally bypasses this facade.
     """
 
     def __init__(self, database_url: Optional[str] = None):

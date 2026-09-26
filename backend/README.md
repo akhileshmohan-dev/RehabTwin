@@ -51,8 +51,8 @@ backend/
 │
 ├── services/
 │   ├── __init__.py
-│   ├── session_service.py    # Wraps DigitalThread session lifecycle
-│   ├── patient_service.py    # Wraps DigitalThread history & patient indexing
+│   ├── session_service.py    # Session lifecycle via repository interfaces
+│   ├── patient_service.py    # Patient history & indexing via repository interfaces
 │   └── rehab_service.py      # Consumes rehabilitation analysis algorithms
 │
 ├── schemas/
@@ -112,7 +112,7 @@ Once running:
 
 ## 5. Communication with Core Modules
 
-- **`digital_thread/` Integration**: `SessionService` and `PatientService` instantiate and consume `DigitalThread`. All session lifecycle records, frame logs, result entries, and patient history queries route through `DigitalThread.start_session()`, `record_frame()`, `record_result()`, `end_session()`, `history()`, and `export_session()`.
+- **`digital_thread/` Integration**: `SessionService` and `PatientService` consume the repository interfaces directly; all session lifecycle records, frame logs, result entries, and patient history queries route through the `backend/repositories/` implementations over `digital_thread.models`/`db`. `DigitalThread` is a legacy compatibility facade used only by standalone tools such as `rehabilitation/live_analysis.py` and `digital_thread/report.py`; the backend service and dependency layers intentionally do not use it.
 - **`rehabilitation/` Integration**: `RehabService` imports exercise definitions from `rehabilitation.exercises` (`EXERCISES`, `get_exercise`) and executes frame analysis via `rehabilitation.analysis_pipeline.ElbowAnalysisPipeline` without modifying or duplicating algorithm code.
 - **`pose_estimation/` Integration**: Consumed by frame creation and processing utilities (`create_pose_frame`, `calculate_angle`, `extract_landmarks`).
 
