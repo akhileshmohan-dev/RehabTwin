@@ -105,7 +105,7 @@ Once running:
 ### Rehabilitation & Analysis (`/api/analysis`)
 - `GET /api/analysis/exercises` - List available exercise definitions (e.g. `elbow_flexion`, `shoulder_flexion`)
 - `GET /api/analysis/exercises/{exercise_id}` - Get metadata for a specific exercise
-- `POST /api/analysis/process-frame` - Process a single `PoseFrame` through `ElbowAnalysisPipeline` (calculates raw/smoothed angles, state transitions, repetitions, and ROM)
+- `POST /api/analysis/process-frame` (deprecated) - Stateless single-frame analysis of a `PoseFrame` (raw/smoothed angles and movement state for that frame only). Repetitions and ROM do **not** accumulate across requests, even when `session_id` is supplied (used only for side validation). Use the WebSocket endpoint for stateful session analysis.
 - `WS /api/analysis/ws/{session_id}` - WebSocket skeleton endpoint for real-time telemetry streaming
 
 ---

@@ -92,13 +92,23 @@ def get_exercise(
 @router.post(
     "/process-frame",
     response_model=AnalysisResultResponse,
-    summary="Process a single PoseFrame through rehabilitation analysis pipeline"
+    summary="Analyze a single PoseFrame independently (stateless)",
+    description=(
+        "Stateless single-frame analysis endpoint (deprecated). Each request is "
+        "evaluated independently: repetitions and ROM are computed only from the "
+        "frame supplied in this request and do NOT accumulate across requests, even "
+        "when `session_id` is provided (it is used solely to validate the requested "
+        "side against the session). Use the WebSocket endpoint "
+        "/api/analysis/ws/{session_id} for stateful, session-accumulating analysis."
+    ),
+    deprecated=True,
 )
 def process_frame(
     request: ProcessFrameRequest,
     service: RehabService = Depends(get_rehab_service),
     session_repo: ISessionRepository = Depends(get_session_repo),
 ) -> AnalysisResultResponse:
+    """Analyze one PoseFrame in isolation; no repetitions/ROM state is retained between calls."""
     if request.session_id:
         try:
             session_data = session_repo.get_session(request.session_id)

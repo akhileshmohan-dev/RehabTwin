@@ -308,6 +308,46 @@ class TestRehabService(unittest.TestCase):
         self.assertEqual(res.state, "EXTENDED")
         self.assertEqual(res.repetitions, 0)
 
+    def test_process_frame_rest_endpoint_is_stateless(self):
+        """Two independent POSTs must not accumulate repetitions or ROM."""
+        def _frame(angle):
+            return {
+                "timestamp": 123456.0,
+                "angles": {"left_elbow": angle},
+                "visibility": {"LEFT_ELBOW": 0.9, "LEFT_SHOULDER": 0.9, "LEFT_WRIST": 0.9},
+                "landmarks": {
+                    "LEFT_SHOULDER": {"x": 0.5, "y": 0.2, "z": 0.0},
+                    "LEFT_ELBOW": {"x": 0.5, "y": 0.5, "z": 0.0},
+                    "LEFT_WRIST": {"x": 0.5, "y": 0.8, "z": 0.0},
+                },
+            }
+
+        first = self.client.post("/api/analysis/process-frame", json={
+            "pose_frame": _frame(90.0),
+            "exercise_id": "elbow_flexion",
+            "side": "left",
+        })
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(first.json()["repetitions"], 0)
+
+        second = self.client.post("/api/analysis/process-frame", json={
+            "pose_frame": _frame(170.0),
+            "exercise_id": "elbow_flexion",
+            "side": "left",
+        })
+        self.assertEqual(second.status_code, 200)
+        body = second.json()
+        # A stateful session pipeline would report min=90, max=170, rom=80.
+        self.assertEqual(body["repetitions"], 0)
+        self.assertEqual(body["rom"]["min_angle"], 170.0)
+        self.assertEqual(body["rom"]["max_angle"], 170.0)
+        self.assertEqual(body["rom"]["rom"], 0.0)
+
+    def test_process_frame_route_marked_deprecated_in_openapi(self):
+        schema = self.client.get("/openapi.json").json()
+        route = schema["paths"]["/api/analysis/process-frame"]["post"]
+        self.assertTrue(route.get("deprecated"))
+
     def test_process_pose_frame_with_unknown_exercise_raises_key_error(self):
         pose_frame = {
             "timestamp": 123456.0,
