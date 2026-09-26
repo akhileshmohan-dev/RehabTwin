@@ -254,6 +254,41 @@ def test_bilateral_side_propagation(repos, client):
     assert session_map[s_right]["results"][0]["side"] == "right"
 
 
+def test_abandoned_sessions_excluded_from_active_counts(repos, client):
+    """
+    ABANDONED sessions must not count as active or completed, and must not
+    contribute to active_patients. They still count toward total_sessions.
+    """
+    session_repo = repos["session_repo"]
+    repos["patient_repo"].create_patient({"patient_id": "P_MIX", "name": "Patient Mix"})
+    repos["patient_repo"].create_patient({"patient_id": "P_ONLY_AB", "name": "Patient OnlyAb"})
+
+    # P_MIX: one ACTIVE + one ABANDONED
+    session_repo.start_session(patient_id="P_MIX", exercise="elbow_flexion", side="left")
+    s_aband = session_repo.start_session(patient_id="P_MIX", exercise="shoulder_flexion", side="right")
+    session_repo.mark_abandoned(s_aband)
+
+    # P_ONLY_AB: only an ABANDONED session
+    s_only = session_repo.start_session(patient_id="P_ONLY_AB", exercise="knee_flexion", side="left")
+    session_repo.mark_abandoned(s_only)
+
+    res = client.get("/api/patients").json()
+
+    p_mix = next(p for p in res["patients"] if p["patient_id"] == "P_MIX")
+    assert p_mix["total_sessions"] == 2
+    assert p_mix["active_sessions"] == 1
+    assert p_mix["completed_sessions"] == 0
+
+    p_only = next(p for p in res["patients"] if p["patient_id"] == "P_ONLY_AB")
+    assert p_only["total_sessions"] == 1
+    assert p_only["active_sessions"] == 0
+    assert p_only["completed_sessions"] == 0
+
+    # Only P_MIX has an ACTIVE session
+    assert res["active_patients"] == 1
+    assert res["total_sessions"] == 3
+
+
 def test_newest_first_ordering(repos, client):
     """
     Sessions must be returned in descending started_at order (newest first).

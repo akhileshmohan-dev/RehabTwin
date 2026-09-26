@@ -467,6 +467,12 @@ async def real_time_telemetry_skeleton(
                 _persist_final_result(session_id, pipeline, result_repo, exercise_def)
             except Exception:
                 pass  # Best-effort only; never raise on disconnect path
+        # Best-effort: record the interrupted session as ABANDONED so it no
+        # longer counts as active. Never downgrades an already COMPLETED session.
+        try:
+            session_repo.mark_abandoned(session_id)
+        except Exception:
+            pass  # Best-effort only; never raise on disconnect path
 
     except Exception as exc:
         # Unexpected server error — send error to client and exit cleanly

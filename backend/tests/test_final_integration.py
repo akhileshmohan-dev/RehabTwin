@@ -689,8 +689,8 @@ class TestPhase6E6FIntegration(unittest.TestCase):
     def test_11_unexpected_disconnect_lifecycle(self):
         """
         Verifies:
-        - Unexpected disconnect without valid frames: session remains ACTIVE, no fake Result, /end fails with 400.
-        - Unexpected disconnect with valid frames: session remains ACTIVE, Result is persisted, subsequent /end succeeds.
+        - Unexpected disconnect without valid frames: session becomes ABANDONED, no fake Result, /end fails with 400.
+        - Unexpected disconnect with valid frames: session becomes ABANDONED, Result is persisted, subsequent /end succeeds.
         """
         self.patient_repo.create_patient({"patient_id": "P_ABRUPT", "name": "Abrupt Patient", "status": "ACTIVE"})
         self.assignment_repo.assign_exercise({"patient_id": "P_ABRUPT", "exercise_id": "elbow_flexion", "side": "left"})
@@ -706,12 +706,13 @@ class TestPhase6E6FIntegration(unittest.TestCase):
                 ws.send_text(_create_jpeg_b64())
                 ws.receive_json()
 
-        # Session remains ACTIVE, no Result row
-        self.assertEqual(self.session_repo.get_session(sid)["status"], "ACTIVE")
+        # Session becomes ABANDONED, no Result row
+        self.assertEqual(self.session_repo.get_session(sid)["status"], "ABANDONED")
         self.assertIsNone(self.result_repo.get_result(sid))
 
-        # /end returns 400
+        # /end returns 400 and does not complete the abandoned, result-less session
         self.assertEqual(self.client.post(f"/api/sessions/{sid}/end").status_code, 400)
+        self.assertEqual(self.session_repo.get_session(sid)["status"], "ABANDONED")
 
     # -------------------------------------------------------------------------
     # 12. Final Result Followed by API Failure (Addendum Test D)

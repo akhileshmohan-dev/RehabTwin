@@ -434,7 +434,7 @@ class TestPhase5FIntegration(BaseIntegrationTest):
         """
         Scenario E1:
         Client processes valid frames, then disconnects abruptly without END_SESSION.
-        Verifies Result is persisted by disconnect handler, session remains ACTIVE,
+        Verifies Result is persisted by disconnect handler, session becomes ABANDONED,
         and subsequent REST /end marks COMPLETED.
         """
         self.client.post("/api/patients", json={"patient_id": "P_DISC", "name": "Patient Disc"})
@@ -458,9 +458,9 @@ class TestPhase5FIntegration(BaseIntegrationTest):
         result = SQLAlchemyResultRepository(self.db).get_result(sid)
         self.assertIsNotNone(result)
 
-        # Verify session status is STILL ACTIVE (WebSocket disconnect does not complete session)
+        # Verify session is ABANDONED (WebSocket disconnect does not complete session)
         sess = SQLAlchemySessionRepository(self.db).get_session(sid)
-        self.assertEqual(sess["status"], "ACTIVE")
+        self.assertEqual(sess["status"], "ABANDONED")
 
         # REST /end completes it
         end_resp = self.client.post(f"/api/sessions/{sid}/end")
@@ -471,7 +471,7 @@ class TestPhase5FIntegration(BaseIntegrationTest):
         """
         Scenario E2:
         Session starts, WebSocket disconnects with 0 valid frames.
-        Verifies no Result exists, session remains ACTIVE, REST /end returns 400.
+        Verifies no Result exists, session becomes ABANDONED, REST /end returns 400.
         """
         self.client.post("/api/patients", json={"patient_id": "P_DISC2", "name": "Patient Disc 2"})
         self.client.post("/api/patients/P_DISC2/exercises", json={"exercise_id": "elbow_flexion", "side": "left"})
@@ -494,18 +494,18 @@ class TestPhase5FIntegration(BaseIntegrationTest):
         result = SQLAlchemyResultRepository(self.db).get_result(sid)
         self.assertIsNone(result)
 
-        # Verify session is still ACTIVE
+        # Verify session becomes ABANDONED
         sess = SQLAlchemySessionRepository(self.db).get_session(sid)
-        self.assertEqual(sess["status"], "ACTIVE")
+        self.assertEqual(sess["status"], "ABANDONED")
 
         # REST /end should fail with 400
         end_resp = self.client.post(f"/api/sessions/{sid}/end")
         self.assertEqual(end_resp.status_code, 400)
         self.assertIn("cannot be ended because no result has been recorded", end_resp.json()["detail"])
 
-        # Session remains ACTIVE
+        # Session remains ABANDONED
         sess_after = SQLAlchemySessionRepository(self.db).get_session(sid)
-        self.assertEqual(sess_after["status"], "ACTIVE")
+        self.assertEqual(sess_after["status"], "ABANDONED")
 
     def test_scenario_f_rest_end_with_active_and_no_result(self):
         """

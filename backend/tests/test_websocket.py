@@ -463,9 +463,10 @@ class TestWebSocket(unittest.TestCase):
 
         sess = SQLAlchemySessionRepository(self.db).get_session(sid)
         self.assertEqual(
-            sess["status"], "ACTIVE",
-            "Abrupt disconnect must NOT complete the session"
+            sess["status"], "ABANDONED",
+            "Abrupt disconnect must mark the session ABANDONED, never COMPLETED"
         )
+        self.assertNotEqual(sess["status"], "COMPLETED")
 
     # -----------------------------------------------------------------------
     # 16. Two simultaneous sessions are isolated

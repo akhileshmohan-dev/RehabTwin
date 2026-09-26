@@ -331,12 +331,13 @@ class TestWebSocketValidation(unittest.TestCase):
                 self.assertEqual(msg_rec["rom"]["min_angle"], rom_min_before)
                 self.assertEqual(msg_rec["state"], "EXTENDED")
 
-    def test_ws_unexpected_disconnect_leaves_session_active(self):
+    def test_ws_unexpected_disconnect_marks_session_abandoned(self):
         """
         Validates that when a WebSocket disconnects abruptly (no END_SESSION control message):
         - the session is NOT marked COMPLETED in database
-        - session status remains ACTIVE
-        - REST /api/sessions/{id}/end remains the sole authoritative completion mechanism
+        - session status becomes ABANDONED
+        - with no result, REST /api/sessions/{id}/end still refuses (400)
+        - COMPLETED remains the sole authoritative completion outcome via REST /end
         """
         sid = self.session_repo.start_session("P001", "elbow_flexion", side="left")
 
@@ -353,4 +354,8 @@ class TestWebSocketValidation(unittest.TestCase):
                 # WebSocket context exits abruptly (client drop)
 
         session_record = self.session_repo.get_session(sid)
-        self.assertEqual(session_record["status"], "ACTIVE")
+        self.assertEqual(session_record["status"], "ABANDONED")
+        self.assertNotEqual(session_record["status"], "COMPLETED")
+        self.assertIsNotNone(session_record["ended_at"])
+        # No result was produced, so it cannot be completed.
+        self.assertEqual(self.client.post(f"/api/sessions/{sid}/end").status_code, 400)

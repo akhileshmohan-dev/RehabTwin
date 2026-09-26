@@ -314,6 +314,14 @@ class SQLAlchemySessionRepository(ISessionRepository):
                 s.status = "COMPLETED"
                 session.commit()
 
+    def mark_abandoned(self, session_id: str) -> None:
+        with self.db.session() as session:
+            s = session.get(Session, session_id)
+            if s and s.status == "ACTIVE":
+                s.ended_at = utc_now()
+                s.status = "ABANDONED"
+                session.commit()
+
     def get_sessions_by_patient(self, patient_id: str) -> List[Dict[str, Any]]:
         with self.db.session() as session:
             rows = session.query(Session).filter(Session.patient_id == patient_id).order_by(Session.started_at).all()

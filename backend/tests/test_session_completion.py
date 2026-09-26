@@ -563,6 +563,19 @@ class TestSessionCompletionPhase5D(unittest.TestCase):
             self.assertIn("COMPLETED", msg["message"])
 
     # -----------------------------------------------------------------------
+    # 12b. WebSocket connection to an ABANDONED session is rejected
+    # -----------------------------------------------------------------------
+    def test_12b_ws_connection_to_abandoned_session_rejected(self):
+        sid = self.session_repo.start_session("PATIENT-001", "elbow_flexion", side="left")
+        self.session_repo.mark_abandoned(sid)
+        self.assertEqual(self.session_repo.get_session(sid)["status"], "ABANDONED")
+
+        with self.client.websocket_connect(f"/api/analysis/ws/{sid}") as ws:
+            msg = ws.receive_json()
+            self.assertEqual(msg["type"], "SESSION_REJECTED")
+            self.assertIn("ABANDONED", msg["message"])
+
+    # -----------------------------------------------------------------------
     # 13. Pipeline state integrity: final result uses in-memory pipeline state
     # -----------------------------------------------------------------------
     def test_13_pipeline_state_integrity_vs_telemetry_downsampling(self):

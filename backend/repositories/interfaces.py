@@ -164,6 +164,17 @@ class ISessionRepository(ABC):
         pass
 
     @abstractmethod
+    def mark_abandoned(self, session_id: str) -> None:
+        """
+        Mark an interrupted ACTIVE session as ABANDONED and set ended_at.
+
+        Used when a live connection drops unexpectedly. Must never downgrade an
+        already COMPLETED session (no-op in that case) and must not create or
+        modify any Result row.
+        """
+        pass
+
+    @abstractmethod
     def get_sessions_by_patient(self, patient_id: str) -> List[Dict[str, Any]]:
         """Return all sessions for a specific patient."""
         pass

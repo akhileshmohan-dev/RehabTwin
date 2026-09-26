@@ -228,8 +228,9 @@ class SessionService:
 
         raw_result = self.result_repo.get_result(session_id)
 
-        # Critical: An ACTIVE session with NO persisted Result must NOT be marked COMPLETED
-        if session.status == "ACTIVE" and raw_result is None:
+        # Critical: An ACTIVE or ABANDONED session with NO persisted Result must
+        # NOT be marked COMPLETED (legacy COMPLETED-without-result stays idempotent).
+        if session.status in ("ACTIVE", "ABANDONED") and raw_result is None:
             raise SessionNoResultException(session_id)
 
         self.session_repo.end_session(session_id)

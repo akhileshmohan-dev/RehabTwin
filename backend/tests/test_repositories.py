@@ -175,3 +175,29 @@ def test_concurrent_result_idempotency():
         database.engine.dispose()
         if os.path.exists(db_path):
             os.remove(db_path)
+
+
+def test_mark_abandoned_sets_status_and_ended_at(db):
+    session_repo = SQLAlchemySessionRepository(db)
+
+    sid = session_repo.start_session("P123", "Bicep Curls")
+    session_repo.mark_abandoned(sid)
+
+    session = session_repo.get_session(sid)
+    assert session["status"] == "ABANDONED"
+    assert session["ended_at"] is not None
+
+
+def test_mark_abandoned_never_downgrades_completed(db):
+    session_repo = SQLAlchemySessionRepository(db)
+
+    sid = session_repo.start_session("P123", "Bicep Curls")
+    session_repo.end_session(sid)
+    completed = session_repo.get_session(sid)
+    assert completed["status"] == "COMPLETED"
+
+    session_repo.mark_abandoned(sid)
+
+    after = session_repo.get_session(sid)
+    assert after["status"] == "COMPLETED"
+    assert after["ended_at"] == completed["ended_at"]
